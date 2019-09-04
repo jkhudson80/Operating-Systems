@@ -75,7 +75,7 @@ int main() {
 		} while ('\n' != getchar());    //until end of line is reached
 
 		int i;
-		for (i = 0; i < instr.numTokens; ++i) {
+		for (i = 0; i < instr.numTokens; i++) {
 			if(instr.tokens[i][0] == '$') {
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
 				if(getenv(instr.tokens[i]) != NULL)
@@ -85,9 +85,20 @@ int main() {
 				//printf("Get Env Token: %s\n", instr.tokens[i]);
 			}
 		}
+		for (i = 0; i < instr.numTokens; i++) {
+			if(strcmp(instr.tokens[i], "echo")) {
+				int j;
+				for (j = i+1; j < instr.numTokens; j++) {
+					if (instr.tokens[j] != NULL)
+						printf("%s ", instr.tokens[j]);
+				}
+				printf("\n");
+				break;
+			}
+		}
 
 		addNull(&instr);
-		printTokens(&instr);
+		//printTokens(&instr);
 		clearInstruction(&instr);
 	}
 
