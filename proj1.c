@@ -75,10 +75,8 @@ int main() {
 
 
 		int i;
-		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
-		{
-			if(instr.tokens[i][0] == '$') 																		//converting environment variables to there actual value
-			{
+		for (i = 0; i < instr.numTokens; i++) {															//going through all the separated instructions that were inputted
+			if(instr.tokens[i][0] == '$') {																	//converting environment variables to there actual value
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
 				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
@@ -87,33 +85,44 @@ int main() {
 			}
 		}
 
+		//Part 4 checking for file paths
+		// for (i = 0; i < instr.numTokens; i++) {	
+		// 	int j;	
+		// 	// For every character in token
+		// 	for (j = 0; i < strlen(instr.tokens[i]); i++) {
+		// 		printf("j: %d\n", j);
+		// 		if(j == 0) {
+		// 			if(instr.tokens[i][1] == '~') {
+		// 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
+		// 				strcpy(instr.tokens[i], strcat(getenv("HOME"), temp));
+		// 				printf("Tilda: %s\n", instr.tokens[i]);
+		// 			}
+		// 		}
+
+		// 		// If there is a '/' then we are dealing with a path
+		// 		if(instr.tokens[i][j] == '/') {
+		// 		}
+		// 	}
+		// }
 
 		//checking for some errors
-		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">"))
-		{
+		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
 			printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
 			clearInstruction(&instr);
 		}
 
 
 		//going through and executing all commands
-		for (i = 0; i < instr.numTokens; i++)
-		{
+		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
 			//*******echo is one of th ebuilt in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
-			if(!strcmp(instr.tokens[i], "echo"))													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
-			{
+			if(!strcmp(instr.tokens[i], "echo")) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
-				for (j = i+1; j < instr.numTokens; j++)
-				{
+				for (j = i+1; j < instr.numTokens; j++) {
 					if (!strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))					//echo command shouldn't print these 4 special characters
-					{
 						break;
-					}
 					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
-					{
 						printf("%s ", instr.tokens[j]);
-					}
 				}
 				printf("\n");
 				break;
