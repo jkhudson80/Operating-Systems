@@ -100,10 +100,10 @@ int main() {
 		//going through and executing all commands
 		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
-			if(strcmp(instr.tokens[i], "echo") == 0) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
+			if(!strcmp(instr.tokens[i], "echo")) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
 				for (j = i+1; j < instr.numTokens; j++) {
-					if ((strcmp(instr.tokens[j], "|") == 0) || (strcmp(instr.tokens[j], "<") == 0) || (strcmp(instr.tokens[j], ">") == 0) || (strcmp(instr.tokens[j], "&") == 0))						//echo command shouldn't print these 4 special characters
+					if ( !strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))						//echo command shouldn't print these 4 special characters
 						break;
 					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
 						printf("%s ", instr.tokens[j]);
@@ -116,8 +116,7 @@ int main() {
 			if ( !strcmp(instr.tokens[i], "PWD") && !strcmp(instr.tokens[i+1], ">"))
 				printf("%s>\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
 		}
-
-
+		
 		addNull(&instr);
 		//printTokens(&instr);
 		clearInstruction(&instr);
