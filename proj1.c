@@ -114,7 +114,7 @@ int main() {
 			//"pwd" command
 			//this is part 3 in the project instructions I believe
 			if ( !strcmp(instr.tokens[i], "PWD") && !strcmp(instr.tokens[i+1], ">"))
-				printf("%s>\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
+				printf("%s >\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
 		}
 		
 		addNull(&instr);
