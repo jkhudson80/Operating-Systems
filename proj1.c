@@ -75,10 +75,8 @@ int main() {
 
 
 		int i;
-		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
-		{
-			if(instr.tokens[i][0] == '$') 																		//converting environment variables to there actual value
-			{
+		for (i = 0; i < instr.numTokens; i++) {														//going through all the separated instructions that were inputted
+			if(instr.tokens[i][0] == '$') {																	//converting environment variables to there actual value
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
 				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
@@ -88,43 +86,34 @@ int main() {
 			}
 		}
 
-
 		//checking for some errors
 		//the last instruction cant be <, or > except in the case in part 3 with "PWD >"
 		//****** ask for clarification from TAs just to be sure through
-		if( !strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">"))
-		{
-			if( !( !strcmp(instr.tokens[instr.numTokens - 1], ">") && !strcmp(instr.tokens[instr.numTokens - 2], "PWD") ) )						//checking if the case described as Part 3 just above is false
-			{
+		if( !strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
+			if( !( !strcmp(instr.tokens[instr.numTokens - 1], ">") && !strcmp(instr.tokens[instr.numTokens - 2], "PWD") ) ) {						//checking if the case described as Part 3 just above is false
 				printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
 				clearInstruction(&instr);
 			}
 		}
 
+
 		//going through and executing all commands
-		for (i = 0; i < instr.numTokens; i++)
-		{
+		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
-			if(strcmp(instr.tokens[i], "echo") == 0)													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
-			{
+			if(strcmp(instr.tokens[i], "echo") == 0) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
-				for (j = i+1; j < instr.numTokens; j++)
-				{
+				for (j = i+1; j < instr.numTokens; j++) {
 					if ((strcmp(instr.tokens[j], "|") == 0) || (strcmp(instr.tokens[j], "<") == 0) || (strcmp(instr.tokens[j], ">") == 0) || (strcmp(instr.tokens[j], "&") == 0))						//echo command shouldn't print these 4 special characters
-					{
 						break;
-					}
 					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
-					{
 						printf("%s ", instr.tokens[j]);
-					}
 				}
 				printf("\n");
 				break;
 			}
 			//"pwd" command
 			//this is part 3 in the project instructions I believe
-			if (strcmp(instr.tokens[i], "PWD") == 0 && strcmp(instr.tokens[i+1], ">") == 0)
+			if ( !strcmp(instr.tokens[i], "PWD") && !strcmp(instr.tokens[i+1], ">"))
 				printf("%s>\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
 		}
 
