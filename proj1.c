@@ -1,10 +1,9 @@
 //COP4610
-//Project 1 Starter Code
-//example code for initial parsing
+//Project 1
+//James Hudson, Artir Hyseni, and Gustavo Valery
 
-//*** if any problems are found with this code,
-//*** please report them to the TA
 
+//We started with the parser_help.c code then built on from there
 
 #include <stdio.h>
 #include <string.h>
@@ -21,6 +20,7 @@ void printTokens(instruction* instr_ptr);
 void clearInstruction(instruction* instr_ptr);
 void addNull(instruction* instr_ptr);
 
+
 int main() {
 	char* token = NULL;
 	char* temp = NULL;
@@ -30,7 +30,7 @@ int main() {
 	instr.numTokens = 0;
 
 	while (1) {
-		printf("Please enter an instruction: ");
+		printf("%s@%s:%s>", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
 
 		// loop reads character sequences separated by whitespace
 		do {
@@ -59,12 +59,11 @@ int main() {
 				}
 			}
 
-			if (start < strlen(token)) {
+			if (start < strlen(token)) {																				//******need to ask about in office hours
 				memcpy(temp, token + start, strlen(token) - start);
 				temp[i-start] = '\0';
 				addToken(&instr, temp);
 			}
-			
 
 			//free and reset variables
 			free(token);
@@ -74,28 +73,53 @@ int main() {
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
 
+
 		int i;
-		for (i = 0; i < instr.numTokens; i++) {
-			if(instr.tokens[i][0] == '$') {
+		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
+		{
+			if(instr.tokens[i][0] == '$') 																		//converting environment variables to there actual value
+			{
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
-				if(getenv(instr.tokens[i]) != NULL)
+				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
-				else
+				else																														//if invalid env variable
 					strcpy(instr.tokens[i], "");
-				//printf("Get Env Token: %s\n", instr.tokens[i]);
 			}
 		}
-		for (i = 0; i < instr.numTokens; i++) {
-			if(strcmp(instr.tokens[i], "echo")) {
+
+
+		//checking for some errors
+		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">"))
+		{
+			printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
+			clearInstruction(&instr);
+		}
+
+
+		//going through and executing all commands
+		for (i = 0; i < instr.numTokens; i++)
+		{
+			//"echo" command
+			//*******echo is one of th ebuilt in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
+			if(!strcmp(instr.tokens[i], "echo"))													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
+			{
 				int j;
-				for (j = i+1; j < instr.numTokens; j++) {
-					if (instr.tokens[j] != NULL)
+				for (j = i+1; j < instr.numTokens; j++)
+				{
+					if (!strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))					//echo command shouldn't print these 4 special characters
+					{
+						break;
+					}
+					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
+					{
 						printf("%s ", instr.tokens[j]);
+					}
 				}
 				printf("\n");
 				break;
 			}
 		}
+
 
 		addNull(&instr);
 		//printTokens(&instr);
@@ -104,6 +128,7 @@ int main() {
 
 	return 0;
 }
+
 
 //reallocates instruction array to hold another token
 //allocates for new token within instruction array
@@ -134,6 +159,7 @@ void addNull(instruction* instr_ptr)
 	instr_ptr->numTokens++;
 }
 
+//int starter added to indicate where in list of instructions you want to start printing from
 void printTokens(instruction* instr_ptr)
 {
 	int i;
