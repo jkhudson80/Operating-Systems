@@ -92,15 +92,14 @@ int main() {
 		//checking for some errors
 		//the last instruction cant be <, or > except in the case in part 3 with "PWD >"
 		//****** ask for clarification from TAs just to be sure through
-		if((strcmp(instr.tokens[instr.numTokens - 1], "<") == 0) || (strcmp(instr.tokens[instr.numTokens - 1], ">") == 0))
+		if( !strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">"))
 		{
-			if(!((strcmp(instr.tokens[instr.numTokens - 1], ">") == 0) && (strcmp(instr.tokens[instr.numTokens - 2], "PWD") == 0)))						//checking if the case described as Part 3 just above is false
+			if( !( !strcmp(instr.tokens[instr.numTokens - 1], ">") && !strcmp(instr.tokens[instr.numTokens - 2], "PWD") ) )						//checking if the case described as Part 3 just above is false
 			{
 				printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
 				clearInstruction(&instr);
 			}
 		}
-
 
 		//going through and executing all commands
 		for (i = 0; i < instr.numTokens; i++)
