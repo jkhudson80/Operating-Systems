@@ -1,10 +1,9 @@
 //COP4610
-//Project 1 Starter Code
-//example code for initial parsing
+//Project 1
+//James Hudson, Artir Hyseni, and Gustavo Valery
 
-//*** if any problems are found with this code,
-//*** please report them to the TA
 
+//We started with the parser_help.c code then built on from there
 
 #include <stdio.h>
 #include <string.h>
@@ -20,6 +19,7 @@ void addToken(instruction* instr_ptr, char* tok);
 void printTokens(instruction* instr_ptr);
 void clearInstruction(instruction* instr_ptr);
 void addNull(instruction* instr_ptr);
+
 
 int main() {
 	char* token = NULL;
@@ -59,12 +59,11 @@ int main() {
 				}
 			}
 
-			if (start < strlen(token)) {
+			if (start < strlen(token)) {																				//******need to ask about in office hours
 				memcpy(temp, token + start, strlen(token) - start);
 				temp[i-start] = '\0';
 				addToken(&instr, temp);
 			}
-			
 
 			//free and reset variables
 			free(token);
@@ -74,28 +73,62 @@ int main() {
 			temp = NULL;
 		} while ('\n' != getchar());    //until end of line is reached
 
+
 		int i;
-		for (i = 0; i < instr.numTokens; i++) {
-			if(instr.tokens[i][0] == '$') {
+		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
+		{
+			if(instr.tokens[i][0] == '$') 																		//converting environment variables to there actual value
+			{
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
-				if(getenv(instr.tokens[i]) != NULL)
+				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
-				else
+				else																														//if invalid env variable
 					strcpy(instr.tokens[i], "");
 				//printf("Get Env Token: %s\n", instr.tokens[i]);
 			}
 		}
-		for (i = 0; i < instr.numTokens; i++) {
-			if(strcmp(instr.tokens[i], "echo")) {
+
+
+		//checking for some errors
+		//the last instruction cant be <, or > except in the case in part 3 with "PWD >"
+		//****** ask for clarification from TAs just to be sure through
+		if((strcmp(instr.tokens[instr.numTokens - 1], "<") == 0) || (strcmp(instr.tokens[instr.numTokens - 1], ">") == 0))
+		{
+			if(!((strcmp(instr.tokens[instr.numTokens - 1], ">") == 0) && (strcmp(instr.tokens[instr.numTokens - 2], "PWD") == 0)))						//checking if the case described as Part 3 just above is false
+			{
+				printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
+				clearInstruction(&instr);
+			}
+		}
+
+
+		//going through and executing all commands
+		for (i = 0; i < instr.numTokens; i++)
+		{
+			//"echo" command
+			if(strcmp(instr.tokens[i], "echo") == 0)													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
+			{
 				int j;
-				for (j = i+1; j < instr.numTokens; j++) {
-					if (instr.tokens[j] != NULL)
+				for (j = i+1; j < instr.numTokens; j++)
+				{
+					if ((strcmp(instr.tokens[j], "|") == 0) || (strcmp(instr.tokens[j], "<") == 0) || (strcmp(instr.tokens[j], ">") == 0) || (strcmp(instr.tokens[j], "&") == 0))						//echo command shouldn't print these 4 special characters
+					{
+						break;
+					}
+					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
+					{
 						printf("%s ", instr.tokens[j]);
+					}
 				}
 				printf("\n");
 				break;
 			}
+			//"pwd" command
+			//this is part 3 in the project instructions I believe
+			if (strcmp(instr.tokens[i], "PWD") == 0 && strcmp(instr.tokens[i+1], ">") == 0)
+				printf("%s>\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
 		}
+
 
 		addNull(&instr);
 		//printTokens(&instr);
@@ -104,6 +137,7 @@ int main() {
 
 	return 0;
 }
+
 
 //reallocates instruction array to hold another token
 //allocates for new token within instruction array
@@ -134,6 +168,7 @@ void addNull(instruction* instr_ptr)
 	instr_ptr->numTokens++;
 }
 
+//int starter added to indicate where in list of instructions you want to start printing from
 void printTokens(instruction* instr_ptr)
 {
 	int i;
