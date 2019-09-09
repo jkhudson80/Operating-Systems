@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>																										//for execv
 
 typedef struct
 {
@@ -78,8 +79,14 @@ int main() {
 		for (i = 0; i < instr.numTokens; i++) {															//going through all the separated instructions that were inputted
 			if(instr.tokens[i][0] == '$') {																	//converting environment variables to there actual value
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
-				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
-					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
+				if(getenv(instr.tokens[i]) != NULL)	{														//if valid env variable
+					temp = (char *) malloc(strlen(getenv(instr.tokens[i])) + 1);
+					strcpy(temp, getenv(instr.tokens[i]));
+					instr.tokens[i] = (char *) malloc(strlen(temp) + 1);
+					strcpy(instr.tokens[i], temp);
+					free(temp);
+					temp = NULL;
+				}
 				else																														//if invalid env variable
 					strcpy(instr.tokens[i], "");
 			}
@@ -108,7 +115,6 @@ int main() {
 								tempy3 = (char *) malloc(strlen(instr.tokens[i]) + strlen(getenv("HOME")) + 1);  //enough space to hold the concatenation of instr.tokens[i] and getenv("HOME")
 								strcpy(tempy3, tempy1);																													//concatenation in two steps. first copy tempy1 into the space that was created in tempy3
 								strcat(tempy3, tempy2);																															//then concatenate tempy2 on to the end of what is in tempy3
-								printf("TEST: tempy3 = %s\n", tempy3);
 								instr.tokens[i] = (char *) malloc(strlen(tempy3) + 1);												//copying the memory in tempy3 into instr.tokens[i]
 								strcpy(instr.tokens[i], tempy3);
 
@@ -124,6 +130,7 @@ int main() {
 	 			}
 	 		}
 	 	}
+
 
 		//checking for some errors
 		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
