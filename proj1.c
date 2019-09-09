@@ -30,7 +30,7 @@ int main() {
 	instr.numTokens = 0;
 
 	while (1) {
-		printf("Please enter an instruction: ");
+		printf("%s@%s:%s>", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
 
 		// loop reads character sequences separated by whitespace
 		do {
@@ -75,35 +75,71 @@ int main() {
 
 
 		int i;
-		for (i = 0; i < instr.numTokens; i++) {														//going through all the separated instructions that were inputted
+		for (i = 0; i < instr.numTokens; i++) {															//going through all the separated instructions that were inputted
 			if(instr.tokens[i][0] == '$') {																	//converting environment variables to there actual value
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
 				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
 				else																														//if invalid env variable
 					strcpy(instr.tokens[i], "");
-				//printf("Get Env Token: %s\n", instr.tokens[i]);
 			}
 		}
 
+		//Part 4 checking for file paths
+		 for (i = 0; i < instr.numTokens; i++) {
+		 	int j;
+			char *tempy1 = NULL;
+			char *tempy2 = NULL;
+			char *tempy3 = NULL;
+
+		 	// For every character in token
+		 	for (j = 0; j < strlen(instr.tokens[i]); j++) {
+	 			if(j == 0) {
+	 				if(instr.tokens[i][0] == '~') {
+						if (strlen(instr.tokens[i]) == 1)
+	 						strcpy(instr.tokens[i], getenv("HOME"));
+					else if(strlen(instr.tokens[i]) > 1) {
+							if(instr.tokens[i][1] == '/') {
+								memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));				//last parameter is the num of bytes to be copied. normally would have to put a + 1 after strlen to account for null character but we are removing the $ character from the front so it isn't needed here
+								tempy1 = (char *) malloc(strlen(getenv("HOME")) + 1);													//+1 required for the null character at the end of a char array. malloc makes space in tempy1 var the size of strlen(getenv("Home"))
+								strcpy(tempy1, getenv("HOME"));																							 //copy the env var "HOME" into the space that was just created for it within the tempy1 var
+								tempy2 = (char *) malloc(strlen(instr.tokens[i]) + 1);
+								strcpy(tempy2, instr.tokens[i]);
+								tempy3 = (char *) malloc(strlen(instr.tokens[i]) + strlen(getenv("HOME")) + 1);  //enough space to hold the concatenation of instr.tokens[i] and getenv("HOME")
+								strcpy(tempy3, tempy1);																													//concatenation in two steps. first copy tempy1 into the space that was created in tempy3
+								strcat(tempy3, tempy2);																															//then concatenate tempy2 on to the end of what is in tempy3
+								printf("TEST: tempy3 = %s\n", tempy3);
+								instr.tokens[i] = (char *) malloc(strlen(tempy3) + 1);												//copying the memory in tempy3 into instr.tokens[i]
+								strcpy(instr.tokens[i], tempy3);
+
+								free(tempy1);																																	//freeing and resetting the variables that we were just using
+								free(tempy2);
+								free(tempy3);
+								tempy1 = NULL;
+								tempy2 = NULL;
+								tempy3 = NULL;
+							}
+						}
+	 				}
+	 			}
+	 		}
+	 	}
+
 		//checking for some errors
-		//the last instruction cant be <, or > except in the case in part 3 with "PWD >"
-		//****** ask for clarification from TAs just to be sure through
-		if( !strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
-			if( !( !strcmp(instr.tokens[instr.numTokens - 1], ">") && !strcmp(instr.tokens[instr.numTokens - 2], "PWD") ) ) {						//checking if the case described as Part 3 just above is false
-				printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
-				clearInstruction(&instr);
-			}
+		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
+			printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
+			clearInstruction(&instr);
 		}
 
 
 		//going through and executing all commands
 		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
+			//*******echo is one of th ebuilt in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
 			if(!strcmp(instr.tokens[i], "echo")) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
 				for (j = i+1; j < instr.numTokens; j++) {
-					if ( !strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))						//echo command shouldn't print these 4 special characters
+					if (!strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))					//echo command shouldn't print these 4 special characters
 						break;
 					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
 						printf("%s ", instr.tokens[j]);
@@ -111,12 +147,9 @@ int main() {
 				printf("\n");
 				break;
 			}
-			//"pwd" command
-			//this is part 3 in the project instructions I believe
-			if ( !strcmp(instr.tokens[i], "PWD") && !strcmp(instr.tokens[i+1], ">"))
-				printf("%s >\n", getenv("PWD"));															//if you check in regular bash, the outputs of our "PWD >" and the env variable "$PWD" are the same
 		}
-		
+
+
 		addNull(&instr);
 		//printTokens(&instr);
 		clearInstruction(&instr);
