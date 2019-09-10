@@ -138,11 +138,39 @@ int main() {
 			clearInstruction(&instr);
 		}
 
+//---------------------------------------------------------------------------working on
+		//NOTE: make sure the command isn't one of the built ins, then I need to fork, then do execv followed immediately by an error message in case it returns a value
+
+		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
+		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0 && strcmp(instr.tokens[0], "echo") != 0 && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias")) {
+			temp = (char *) malloc(strlen(instr.tokens[0]) + 6);																				//+6 because of the normal + 1 + the characters in "/bin/"
+			strcpy(temp, "/bin/");
+			strcat(temp, instr.tokens[0]);																															//concatenating the beginning of the file path and the executable's name to be a path to pass to the execv func
+			char *const parmlist[] = {temp, instr.tokens[1], NULL};																			//***** need to change this later to account for more than one arguement to be passed as a parameter
+			pid_t pid = fork();
+			if(pid == 0) {																																							//pid of 0 means this fork is the child i believe.
+				execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
+				printf("bash: %s: command not found\n", instr.tokens[0]);																	//if an invalid command was inputted then execv returns and hits this line to display an error code
+				exit(1);
+			}
+//			else if ((pid = fork()) == -1)																														//this code was making the prompt print out twice for some reason so i just commented it out for now
+//				printf("Forking Error");																																//*** need to add this back in some capacity
+		}
+
+		/*
+		if ((pid = fork()) == -1)
+			printf("fork error");
+		else if (pid == 0) {
+			execv("/bin/ls", parmList);
+			printf("Return not expected. Must be an execv error.n");
+		}
+		*/
+//-----------------------------------------------------------------------------
 
 		//going through and executing all commands
 		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
-			//*******echo is one of th ebuilt in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
+			//*******echo is one of the built in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
 			if(!strcmp(instr.tokens[i], "echo")) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
 				for (j = i+1; j < instr.numTokens; j++) {
