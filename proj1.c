@@ -25,6 +25,7 @@ void addNull(instruction* instr_ptr);
 int main() {
 	char* token = NULL;
 	char* temp = NULL;
+	int county = 0;
 
 	instruction instr;
 	instr.tokens = NULL;
@@ -139,14 +140,46 @@ int main() {
 		}
 
 //---------------------------------------------------------------------------working on
-		//NOTE: make sure the command isn't one of the built ins, then I need to fork, then do execv followed immediately by an error message in case it returns a value
+		//identifying where all the commands are
+		int comspots[instr.numTokens];																														//initializing to this size because there can't be more commands then there are tokens
+		int numofcom = 0;																																				//the number of commands, valid or invalid, that the user typed in
+		//first token is always going to be a command except for when it is a & where the & will be ignored and the next token is a command that will still be executed in the foreground per the second bullet point of part 9
+		for (i = 0; i < instr.numTokens; i++) {
+			if(i == 0 && (strcmp(instr.tokens[0], "&") != 0)) {																						//if the first token is not a & then it is a commands
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+			else if ((strcmp(instr.tokens[i-1], "|") == 0) || (strcmp(instr.tokens[i-1], "&") == 0)) {
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+		}
+		//now we know what spots contain commands
 
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
 		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0 && strcmp(instr.tokens[0], "echo") != 0 && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias")) {
 			temp = (char *) malloc(strlen(instr.tokens[0]) + 6);																				//+6 because of the normal + 1 + the characters in "/bin/"
 			strcpy(temp, "/bin/");
 			strcat(temp, instr.tokens[0]);																															//concatenating the beginning of the file path and the executable's name to be a path to pass to the execv func
-			char *const parmlist[] = {temp, instr.tokens[1], NULL};																			//***** need to change this later to account for more than one arguement to be passed as a parameter
+			//counting how many parameters there are for the command
+			county = 0;
+			for(i = 1; i < instr.numTokens; i++) {
+				if (i == instr.numTokens)																																	//case to handle if only a command was entered with no parameters (like "ls")
+					break;
+				else if ((strcmp(instr.tokens[i], "<") == 0) || (strcmp(instr.tokens[i], ">") == 0) || (strcmp(instr.tokens[i], "|") == 0) || (strcmp(instr.tokens[i], "&") == 0))
+					break;
+				else
+					county++;
+			}
+
+			//creating parameter list to be passed to execv()
+			char* parmlist[county + 2]; 																																//size of parm list is county + 2. county for each parameter, 1 for the command name, and one for the NULL at the end of the list
+			parmlist[0] = temp;
+			for(i = 1; i < county + 1; i++) {																														//adding all the parameters to the parmlist
+					parmlist[i] = instr.tokens[i];
+			}
+			parmlist[county + 1] = NULL;
+
 			pid_t pid = fork();
 			if(pid == 0) {																																							//pid of 0 means this fork is the child i believe.
 				execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
@@ -157,14 +190,6 @@ int main() {
 //				printf("Forking Error");																																//*** need to add this back in some capacity
 		}
 
-		/*
-		if ((pid = fork()) == -1)
-			printf("fork error");
-		else if (pid == 0) {
-			execv("/bin/ls", parmList);
-			printf("Return not expected. Must be an execv error.n");
-		}
-		*/
 //-----------------------------------------------------------------------------
 
 		//going through and executing all commands
