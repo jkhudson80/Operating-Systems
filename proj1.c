@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>																										//for execv
 
 typedef struct
 {
@@ -24,6 +25,7 @@ void addNull(instruction* instr_ptr);
 int main() {
 	char* token = NULL;
 	char* temp = NULL;
+	int county = 0;
 
 	instruction instr;
 	instr.tokens = NULL;
@@ -78,14 +80,64 @@ int main() {
 		for (i = 0; i < instr.numTokens; i++) {															//going through all the separated instructions that were inputted
 			if(instr.tokens[i][0] == '$') {																	//converting environment variables to there actual value
 				memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));
+     testing
+				if(getenv(instr.tokens[i]) != NULL)	{														//if valid env variable
+					temp = (char *) malloc(strlen(getenv(instr.tokens[i])) + 1);
+					strcpy(temp, getenv(instr.tokens[i]));
+					instr.tokens[i] = (char *) malloc(strlen(temp) + 1);
+					strcpy(instr.tokens[i], temp);
+					free(temp);
+					temp = NULL;
+	
 				if(getenv(instr.tokens[i]) != NULL)															//if valid env variable
 					strcpy(instr.tokens[i], getenv(instr.tokens[i]));
+     master
 				else																														//if invalid env variable
 					strcpy(instr.tokens[i], "");
 			}
 		}
 
 		//Part 4 checking for file paths
+   testing
+		 for (i = 0; i < instr.numTokens; i++) {
+		 	int j;
+			char *tempy1 = NULL;
+			char *tempy2 = NULL;
+			char *tempy3 = NULL;
+
+		 	// For every character in token
+		 	for (j = 0; j < strlen(instr.tokens[i]); j++) {
+	 			if(j == 0) {
+	 				if(instr.tokens[i][0] == '~') {
+						if (strlen(instr.tokens[i]) == 1)
+	 						strcpy(instr.tokens[i], getenv("HOME"));
+					else if(strlen(instr.tokens[i]) > 1) {
+							if(instr.tokens[i][1] == '/') {
+								memcpy(instr.tokens[i], &instr.tokens[i][1], strlen(instr.tokens[i]));				//last parameter is the num of bytes to be copied. normally would have to put a + 1 after strlen to account for null character but we are removing the $ character from the front so it isn't needed here
+								tempy1 = (char *) malloc(strlen(getenv("HOME")) + 1);													//+1 required for the null character at the end of a char array. malloc makes space in tempy1 var the size of strlen(getenv("Home"))
+								strcpy(tempy1, getenv("HOME"));																							 //copy the env var "HOME" into the space that was just created for it within the tempy1 var
+								tempy2 = (char *) malloc(strlen(instr.tokens[i]) + 1);
+								strcpy(tempy2, instr.tokens[i]);
+								tempy3 = (char *) malloc(strlen(instr.tokens[i]) + strlen(getenv("HOME")) + 1);  //enough space to hold the concatenation of instr.tokens[i] and getenv("HOME")
+								strcpy(tempy3, tempy1);																													//concatenation in two steps. first copy tempy1 into the space that was created in tempy3
+								strcat(tempy3, tempy2);																															//then concatenate tempy2 on to the end of what is in tempy3
+								instr.tokens[i] = (char *) malloc(strlen(tempy3) + 1);												//copying the memory in tempy3 into instr.tokens[i]
+								strcpy(instr.tokens[i], tempy3);
+
+								free(tempy1);																																	//freeing and resetting the variables that we were just using
+								free(tempy2);
+								free(tempy3);
+								tempy1 = NULL;
+								tempy2 = NULL;
+								tempy3 = NULL;
+							}
+						}
+	 				}
+	 			}
+	 		}
+	 	}
+
+
 		// for (i = 0; i < instr.numTokens; i++) {	
 		// 	int j;	
 		// 	// For every character in token
@@ -104,6 +156,7 @@ int main() {
 		// 		}
 		// 	}
 		// }
+ master
 
 		//checking for some errors
 		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">")) {
@@ -111,11 +164,70 @@ int main() {
 			clearInstruction(&instr);
 		}
 
+testing
+//---------------------------------------------------------------------------working on
+		//identifying where all the commands are
+		int comspots[instr.numTokens];																														//initializing to this size because there can't be more commands then there are tokens
+		int numofcom = 0;																																				//the number of commands, valid or invalid, that the user typed in
+		//first token is always going to be a command except for when it is a & where the & will be ignored and the next token is a command that will still be executed in the foreground per the second bullet point of part 9
+		for (i = 0; i < instr.numTokens; i++) {
+			if(i == 0 && (strcmp(instr.tokens[0], "&") != 0)) {																						//if the first token is not a & then it is a commands
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+			else if ((strcmp(instr.tokens[i-1], "|") == 0) || (strcmp(instr.tokens[i-1], "&") == 0)) {
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+		}
+		//now we know what spots contain commands
+
+		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
+		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0 && strcmp(instr.tokens[0], "echo") != 0 && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias")) {
+			temp = (char *) malloc(strlen(instr.tokens[0]) + 6);																				//+6 because of the normal + 1 + the characters in "/bin/"
+			strcpy(temp, "/bin/");
+			strcat(temp, instr.tokens[0]);																															//concatenating the beginning of the file path and the executable's name to be a path to pass to the execv func
+			//counting how many parameters there are for the command
+			county = 0;
+			for(i = 1; i < instr.numTokens; i++) {
+				if (i == instr.numTokens)																																	//case to handle if only a command was entered with no parameters (like "ls")
+					break;
+				else if ((strcmp(instr.tokens[i], "<") == 0) || (strcmp(instr.tokens[i], ">") == 0) || (strcmp(instr.tokens[i], "|") == 0) || (strcmp(instr.tokens[i], "&") == 0))
+					break;
+				else
+					county++;
+			}
+
+			//creating parameter list to be passed to execv()
+			char* parmlist[county + 2]; 																																//size of parm list is county + 2. county for each parameter, 1 for the command name, and one for the NULL at the end of the list
+			parmlist[0] = temp;
+			for(i = 1; i < county + 1; i++) {																														//adding all the parameters to the parmlist
+					parmlist[i] = instr.tokens[i];
+			}
+			parmlist[county + 1] = NULL;
+
+			pid_t pid = fork();
+			if(pid == 0) {																																							//pid of 0 means this fork is the child i believe.
+				execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
+				printf("bash: %s: command not found\n", instr.tokens[0]);																	//if an invalid command was inputted then execv returns and hits this line to display an error code
+				exit(1);
+			}
+//			else if ((pid = fork()) == -1)																														//this code was making the prompt print out twice for some reason so i just commented it out for now
+//				printf("Forking Error");																																//*** need to add this back in some capacity
+		}
+
+//-----------------------------------------------------------------------------
+
+ master
 
 		//going through and executing all commands
 		for (i = 0; i < instr.numTokens; i++) {
 			//"echo" command
+ testing
+			//*******echo is one of the built in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
+
 			//*******echo is one of th ebuilt in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
+ master
 			if(!strcmp(instr.tokens[i], "echo")) {													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
 				int j;
 				for (j = i+1; j < instr.numTokens; j++) {
