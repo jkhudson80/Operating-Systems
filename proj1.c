@@ -1,6 +1,6 @@
 //COP4610
 //Project 1
-//James Hudson, Artir Hyseni, and Gustavo Valery
+//James Keifer Hudson, Artir Hyseni, and Gustavo Valery
 
 
 //We started with the parser_help.c code then built on from there
@@ -85,7 +85,7 @@ int main() {
 
 		//Some variables that will help later
 		int i, j, k;																												//for for loops
-		int truth = 0;																											//for true false stuff
+		int truth, truth2 = 0;																											//for true false stuff
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
 		char *tempy2 = NULL;
 		char *tempy3 = NULL;
@@ -134,7 +134,7 @@ int main() {
 						tempy1 = NULL;
 					}
 					else																														//if invalid env variable
-						strcpy(instr.tokens[i], "");
+							strcpy(instr.tokens[i], "");
 				}
 			}
 		}
@@ -216,6 +216,16 @@ int main() {
 		}
 		//Done identifying where all the files are
 
+		//Going through and converting file paths that are just "." to  $pwd
+		for(i = 0; i < numfiles; i++)
+		{
+			if(strcmp(instr.tokens[filespots[i]], ".") == 0)
+			{
+				instr.tokens[filespots[i]] = (char *) malloc(strlen(getenv("PWD")) + 1);
+				strcpy(instr.tokens[filespots[i]], getenv("PWD"));
+			}
+		}
+
 
 		//SECTION: Converting files to there true paths
 		//now that we know where all the file tokens are located we can convert them to the appropriate full paths
@@ -233,7 +243,7 @@ int main() {
 					//if just a tilda
 					if (strlen(instr.tokens[filespots[i]]) == 1)
 						strcpy(instr.tokens[filespots[i]], getenv("HOME"));
-					//if tilda t the beginning of a longer file path
+					//if tilda at the beginning of a longer file path
 					else if(strlen(instr.tokens[filespots[i]]) > 1)
 					{
 							memcpy(instr.tokens[filespots[i]], &instr.tokens[filespots[i]][1], strlen(instr.tokens[filespots[i]]));				//last parameter is the num of bytes to be copied. normally would have to put a + 1 after strlen to account for null character but we are removing the $ character from the front so it isn't needed here
@@ -254,13 +264,34 @@ int main() {
 							tempy3 = NULL;
 					}
 				} //Done with tildas
+
+				//Converting Relative paths
+				if (j == 0 && instr.tokens[filespots[i]][j] != '/')																					//Relative path is like if you type if "cd OS" (assuming OS is a directory in your current directory) it is the same as saying "cd $PWD/OS"
+				{
+					tempy1 = (char *) malloc(strlen(getenv("PWD")) + 1);
+					strcpy(tempy1, getenv("PWD"));
+					tempy2 = (char *) malloc(strlen(instr.tokens[filespots[i]]) + 1);
+					strcpy(tempy2, instr.tokens[filespots[i]]);
+					tempy3 = (char *) malloc(2);																															//tempy3 just holding a "/" to go right before the relative path that the user typed in and the pwd that is being put before it
+					strcpy(tempy3,"/");
+					instr.tokens[filespots[i]] = NULL;
+					instr.tokens[filespots[i]] = (char *) malloc(strlen(tempy1) + strlen(tempy2) + 2);
+					strcat(instr.tokens[filespots[i]], tempy1);																								//PWD
+					strcat(instr.tokens[filespots[i]], tempy3);																								//"/"
+					strcat(instr.tokens[filespots[i]], tempy2);																								//the relative path that was typed in
+					free(tempy1);
+					free(tempy2);
+					tempy1 = NULL;
+					tempy2 = NULL;
+				}//done with relative paths
+
 				//Converting Double Dots(..)
-				k = 0; 																																															//this just stores true false if you called .. on the root directory so that we can know that there is an error and not run the command. This is needed because built in commands like "ls /.." will be accepted as valid and still run even though that our project instructions tell us to make that invalid
+				truth2 = 0; 																																															//this just stores true false if you called .. on the root directory so that we can know that there is an error and not run the command. This is needed because built in commands like "ls /.." will be accepted as valid and still run even though that our project instructions tell us to make that invalid
 				if (instr.tokens[filespots[i]][j] == '.' && j != strlen(instr.tokens[filespots[i]]) - 1 && instr.tokens[filespots[i]][j+1] == '.')					//middle condion to make sure first "." isn't the last character in the files token because otherwise trying to check for a second "." would go out of bounds.
 				{
 					if (j == 1 && instr.tokens[filespots[i]][j-1] == '/')																							//case when using .. on the root directory like "/.."
 					{
-						k = 1;
+						truth2 = 1;
 						break;
 					}
 					else if (j > 1 && instr.tokens[filespots[i]][j-1] != '/')																					//case where .. is not at the beginning of the file and isn't preceded by a / like ~/OS/hat..
@@ -268,11 +299,116 @@ int main() {
 					else if (j != strlen(instr.tokens[filespots[i]]) - 2 && instr.tokens[filespots[i]][j+2] != '/')			//case where the .. isnt at the end of the file like "~/.." and isn't followed by a "/". ex would be "~/OS/..boo/scaredyou"
 						break;
 					else																																															//valid use of .. here so now we need to do the removing of the directory and stuff
-						printf("TEST: Double dot: file path is: %s\n", instr.tokens[filespots[i]]);											//******need to do the stuff here with removing the file path
+					{
+							county = 0;
+							//figuring out how much of the middle of the file path we have to remove to turn the file path into its parent
+							for (k = j-2; k >= 0; k--)																																		//the j-1 part is to skip the first "/" that comes right before the ".." so that we can look for the previous one.
+							{
+								if (instr.tokens[filespots[i]][k] == '/')
+								{
+									county = k;
+									break;
+								}
+							}
+							county = county + 1;
+							tempy1 = (char *) malloc(county + 1);
+							strncpy(tempy1, instr.tokens[filespots[i]], county);
+
+							county = 0;
+							if(strlen(instr.tokens[filespots[i]]) > j+3) 																		//if there was stuff after the double dot
+							{
+								for (k = j + 3; k < strlen(instr.tokens[filespots[i]]); k++)									//counting how much stuff is after the double dot
+								{
+									county = county + 1;
+								}
+								tempy2 = (char *) malloc(county + 1);																					//allocating memory for the stuff after the double dot
+								tempy2[county] = '\0';
+								county = 0;
+								for (k = j + 3; k < strlen(instr.tokens[filespots[i]]); k++)									//going through character by character and grabbing the stuff that follows "../"
+								{
+									tempy2[county] = instr.tokens[filespots[i]][k];
+									county = county + 1;
+								}
+								//tempy2 now holding the stuff that comes after the "../"
+								//I tried doing this little chunk straight into the instr.tokens[] but it didn't work for some reason so I decided to use tempy3 as an intermediate between the calculations and instr.tokens[]
+								tempy3 = (char *) malloc(strlen(tempy1) + strlen(tempy2) + 1);
+								strcpy(tempy3, tempy1);
+								strcat(tempy3, tempy2);																												//tempy3 now holds the final answer, just need to put it in instr.tokens[filespots[i]]
+
+								instr.tokens[filespots[i]] = NULL;
+								instr.tokens[filespots[i]] = (char *) malloc(strlen(tempy3) + 1);
+								strcpy(instr.tokens[filespots[i]], tempy3);
+							}
+							else																																//else if there is not stuff that comes after the .. (besdies a possible "/")
+							{
+								instr.tokens[filespots[i]] = NULL;
+								instr.tokens[filespots[i]] = (char *) malloc(strlen(tempy1) + 1);						//if nothing after the "../" then the final file is just the stuff before the "../" which is already stored in tempy1
+								strcpy(instr.tokens[filespots[i]], tempy1);
+							}
+							county = 0;
+							free(tempy1);
+							free(tempy2);
+							free(tempy3);
+							tempy1 = NULL;
+							tempy2 = NULL;
+							tempy3 = NULL;
+					}
 				}//done with double dots
+
+				//Single Dots "."
+				//Removing the single dot from the middle of the path.
+				//"./blah" gets $PWD appended to the front of it already with the relative path stuff so the "." would be in the middle now.
+				//Just need to remove the "/." from "abc/./123"
+				if (j < strlen(instr.tokens[filespots[i]]) - 1 && instr.tokens[filespots[i]][j - 1] == '/' && instr.tokens[filespots[i]][j] == '.' && instr.tokens[filespots[i]][j + 1] == '/')
+				{
+					tempy1 = (char *) malloc(j);
+					strncpy(tempy1, instr.tokens[filespots[i]], j -1);
+					//tempy1 now holding the stuff before the "/./"
+
+					county = 0;																																		//counting how many things come after the "/." (including the trailing "/")
+					for(k = j + 1; k < strlen(instr.tokens[filespots[i]]); k++)
+					{
+						county = county + 1;
+					}
+					tempy2 = (char *) malloc(county + 1);																					//allocating memory for the stuff after the double dot
+					tempy2[county] = '\0';
+					county = 0;
+					for(k = j + 1; k < strlen(instr.tokens[filespots[i]]); k++)
+					{
+						tempy2[county] = instr.tokens[filespots[i]][k];
+						county = county + 1;
+					}
+					tempy3 = (char *) malloc(strlen(tempy1) + strlen(tempy2) + 1);
+					strcpy(tempy3, tempy1);
+					strcat(tempy3, tempy2);																												//tempy3 now holds the final answer, just need to put it in instr.tokens[filespots[i]]
+
+					instr.tokens[filespots[i]] = NULL;
+					instr.tokens[filespots[i]] = (char *) malloc(strlen(tempy3) + 1);
+					strcpy(instr.tokens[filespots[i]], tempy3);
+
+					free(tempy1);
+					free(tempy2);
+					free(tempy3);
+					tempy1 = NULL;
+					tempy2 = NULL;
+					tempy3 = NULL;
+
+				}//done with single dot from the middle "abc/./123"
+				//Removing the single dot from the end of the path
+				if(j == strlen(instr.tokens[filespots[i]]) - 1  && instr.tokens[filespots[i]][j] == '.')
+				{
+					tempy1 = (char *) malloc(strlen(instr.tokens[filespots[i]]));
+					strncpy(tempy1, instr.tokens[filespots[i]], strlen(instr.tokens[filespots[i]]) - 1);
+					instr.tokens[filespots[i]] = (char *) malloc(strlen(tempy1) + 1);
+					strcpy(instr.tokens[filespots[i]], tempy1);
+					free(tempy1);
+					tempy1 = NULL;
+				}//done with single dot at the very end "abc/."
+
 			}//done with a single file
 	 	}//done iterating through each file
 		//Done converting file paths
+
 
 
 		//SECTION: checking if file paths are all valid
@@ -301,13 +437,13 @@ int main() {
 			clearInstruction(&instr);
 			continue;
 		}
-		if (k == 1)//if you called .. on the root directory
+		if (truth2 == 1)//if you called .. on the root directory
 		{
 			printf("Error: can't use \"..\" path on the root directory\n");
 			clearInstruction(&instr);
 			continue;
 		}
-
+		truth2 = 0;
 
 		//SECTION: Built in commands (part 6 stuff)
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
