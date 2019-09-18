@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <unistd.h>																										//for execv() to execute built in commands
 #include <sys/stat.h>																									//for stat() to check for valid file paths
+#include <fcntl.h>																										//for some of the I/O stuff
+#include <sys/wait.h>
 
 typedef struct
 {
@@ -89,6 +91,7 @@ int main() {
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
 		char *tempy2 = NULL;
 		char *tempy3 = NULL;
+		int outred, inred, pipe = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
 
 		//SECTION: Converting environmental variables
 		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
@@ -419,11 +422,15 @@ int main() {
 		{
 			if(stat(instr.tokens[filespots[i]], &stats) != 0)																			//stat() returns 0 if a valid file path was given and a nonzero number if it was invalid
 			{
-				printf("Invalid file path\n");
-				truth = 0;
-				addNull(&instr);																																		//have to do this clearing stuff before asking the user for another command because otherwise commands from previous prompts get jumbled in
-				clearInstruction(&instr);
-				break;
+				//It's not an invalid path if it comes right after a ">" because the file will be created during the output redirection process
+				if (i != 0 && strcmp(instr.tokens[filespots[i] - 1], ">") != 0)
+				{
+					printf("Invalid file path: %s\n", instr.tokens[filespots[i]]);
+					truth = 0;
+					addNull(&instr);																																		//have to do this clearing stuff before asking the user for another command because otherwise commands from previous prompts get jumbled in
+					clearInstruction(&instr);
+					break;
+				}
 			}
 		}
 		if (truth == 0)																																					//If you found an invalid file path then continue on to the next loop of the big while loop, prompting the user to type in another command
@@ -431,19 +438,30 @@ int main() {
 
 
 		//SECTION: checking for some errors *** need to add more error checking for some of the other weird combinations of symbols ***
+		//Lat token can't be a input or output redirection
 		if(!strcmp(instr.tokens[instr.numTokens - 1], "<") || !strcmp(instr.tokens[instr.numTokens - 1], ">"))
 		{
 			printf("bash: syntax error near unexpected token newline\n");																																		//error message and clearing instructions since invalid stuff was inputted
 			clearInstruction(&instr);
 			continue;
 		}
-		if (truth2 == 1)//if you called .. on the root directory
+		//if you called .. on the root directory
+		if (truth2 == 1)
 		{
 			printf("Error: can't use \"..\" path on the root directory\n");
 			clearInstruction(&instr);
 			continue;
 		}
 		truth2 = 0;
+		//if "<" is the first token
+		if (strcmp(instr.tokens[0], "<") == 0)
+		{
+			printf("bash: syntax error\n");
+			clearInstruction(&instr);
+			continue;
+		}
+
+
 
 		//SECTION: Built in commands (part 6 stuff)
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
@@ -471,22 +489,120 @@ int main() {
 					parmlist[i] = instr.tokens[i];
 			parmlist[county + 1] = NULL;
 
-			int status;																																									//this is for the waitpid function. status is 0 if there is no error.
-			pid_t pid = fork();
-			if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
-							printf("Forking Error");
-			else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
+			//Checking what sort of Redirections there are to do
+			for(i = 1; i < instr.numTokens; i++)
 			{
-				execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
-				printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
-				exit(1);
+				if(strcmp(instr.tokens[i], "|") == 0)
+				{
+					pipe = 1;
+					break;
+				}
+				else if(strcmp(instr.tokens[i], "<") == 0)
+					inred = 1;
+				else if(strcmp(instr.tokens[i], ">") == 0)
+					outred = 1;
 			}
-			else
-				waitpid(pid, &status, 0);																															//this else is for the parent to hit. The parent hits this while the child hits the else if. Parent waits for child to finish
-	}
+			//Done checking for Redirections
+
+			//This part works without any I/O Redirection or Piping so I'm not touching it
+			if (outred == 0 && inred == 0 && pipe == 0)
+			{
+				int status;																																									//this is for the waitpid function. status is 0 if there is no error.
+				pid_t pid = fork();
+				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+								printf("Forking Error");
+				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
+				{
+					execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
+					printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
+					exit(1);
+				}
+				else
+					waitpid(pid, &status, 0);																															//this else is for the parent to hit. The parent hits this while the child hits the else if. Parent waits for child to finish
+			}
+
+			//Just Output Redirection
+			else if(outred == 1 && inred == 0 && pipe == 0)
+			{
+				int status;
+				pid_t pid = fork();
+				//need to get tempy to equal the file that is being outputted to
+				for(i = 0; i < instr.numTokens; i++)
+				{
+						if(strcmp(instr.tokens[i], ">") == 0)
+						{
+							tempy1 = (char *) malloc(strlen(instr.tokens[i + 1]) + 1);
+							strcpy(tempy1, instr.tokens[i + 1]);
+							break;
+						}
+				}
+				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+			          printf("Forking Error");
+			  else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
+			  {
+			    open(tempy1, O_RDWR | O_CREAT | O_TRUNC);
+			    close(1);
+			    dup(3);
+			    close(3);
+			    execv(temp, parmlist);
+			    printf("exec failed\n");
+			  }
+			  else
+			  	waitpid(pid, &status, 0);
+
+				free(tempy1);
+				tempy1 = NULL;
+			}
+
+			//Just Input Redirection
+			else if(outred == 0 && inred == 1 && pipe == 0)
+			{
+				printf("TEST: Just Input redirection\n");
+				int status;
+				pid_t pid = fork();
+				//need to get tempy to equal the file that the input is coming from
+				for(i = 0; i < instr.numTokens; i++)
+				{
+						if(strcmp(instr.tokens[i], "<") == 0)
+						{
+							tempy1 = (char *) malloc(strlen(instr.tokens[i + 1]) + 1);
+							strcpy(tempy1, instr.tokens[i + 1]);
+							break;
+						}
+				}
+				//tempy1 is the input file now
+
+
+				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+								printf("Forking Error");
+				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
+				{
+					open(tempy1, O_RDONLY);
+					close(0);
+					dup(3);
+					close(3);
+					execv(temp, parmlist);
+					printf("exec failed\n");
+				}
+				else
+					waitpid(pid, &status, 0);
 
 
 
+				free(tempy1);
+				tempy1 = NULL;
+			}//end of input redirection
+
+			free(temp);
+			temp = NULL;
+			outred = 0;
+			inred = 0;
+			pipe = 0;
+		}//End of Built in Functions
+
+
+
+		//**** Should probably turn these into functions that can be called in other places to make it easier for I/O redirections and piping ***
 		//SECTION: Own commands (part 10)
 		for (i = 0; i < instr.numTokens; i++)
 		{
