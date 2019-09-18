@@ -92,6 +92,7 @@ int main() {
 		char *tempy2 = NULL;
 		char *tempy3 = NULL;
 		int outred, inred, pipe = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
+		int singlePipeCmd = 0;
 
 		//SECTION: Converting environmental variables
 		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
@@ -460,6 +461,12 @@ int main() {
 			clearInstruction(&instr);
 			continue;
 		}
+		if (instr.numTokens == 1) {
+			if (!strcmp(instr.tokens[0], "|")) {
+				printf("bash: syntax error near unexpected token `|'\n");
+				singlePipeCmd = 1;
+			}
+		}
 
 
 
@@ -505,7 +512,7 @@ int main() {
 			//Done checking for Redirections
 
 			//This part works without any I/O Redirection or Piping so I'm not touching it
-			if (outred == 0 && inred == 0 && pipe == 0)
+			if (outred == 0 && inred == 0 && pipe == 0 && singlePipeCmd == 0)
 			{
 				int status;																																									//this is for the waitpid function. status is 0 if there is no error.
 				pid_t pid = fork();
@@ -522,7 +529,7 @@ int main() {
 			}
 
 			//Just Output Redirection
-			else if(outred == 1 && inred == 0 && pipe == 0)
+			else if(outred == 1 && inred == 0 && pipe == 0 && singlePipeCmd == 0)
 			{
 				int status;
 				pid_t pid = fork();
@@ -555,7 +562,7 @@ int main() {
 			}
 
 			//Just Input Redirection
-			else if(outred == 0 && inred == 1 && pipe == 0)
+			else if(outred == 0 && inred == 1 && pipe == 0 && singlePipeCmd == 0)
 			{
 				printf("TEST: Just Input redirection\n");
 				int status;
@@ -597,8 +604,12 @@ int main() {
 			temp = NULL;
 			outred = 0;
 			inred = 0;
+			singlePipeCmd == 0;
 			pipe = 0;
+
 		}//End of Built in Functions
+
+
 
 
 
