@@ -461,13 +461,14 @@ int main() {
 			clearInstruction(&instr);
 			continue;
 		}
-		if (instr.numTokens == 1) {
-			if (!strcmp(instr.tokens[0], "|")) {
+		if (instr.numTokens == 1)
+		{
+			if (!strcmp(instr.tokens[0], "|"))
+			{
 				printf("bash: syntax error near unexpected token `|'\n");
 				singlePipeCmd = 1;
 			}
 		}
-
 
 
 		//SECTION: Built in commands (part 6 stuff)
@@ -594,22 +595,79 @@ int main() {
 				else
 					waitpid(pid, &status, 0);
 
-
-
 				free(tempy1);
 				tempy1 = NULL;
 			}//end of input redirection
+
+//WORKING HERE-------------------------------------------------
+			//Both input and output redirection
+			else if(outred == 1 && inred == 1 && pipe == 0 && singlePipeCmd == 0)
+			{
+				printf("TEST: Godzirraaa says there is both input and output redirection mofo\n");
+				//tempy1 will hold the input file and tempy2 will hold the output file
+				//finding the input file
+				for(i = 0; i < instr.numTokens; i++)
+				{
+					if(strcmp(instr.tokens[i], "<") == 0)
+					{
+						county = i + 1;
+						break;
+					}
+				}
+				tempy1 = (char *) malloc(strlen(instr.tokens[county]));
+				strcpy(tempy1, instr.tokens[county]);
+				//finding the output file
+				for(i = 0; i < instr.numTokens; i++)
+				{
+					if(strcmp(instr.tokens[i], ">") == 0)
+					{
+						county = i + 1;
+						break;
+					}
+				}
+				tempy2 = (char *) malloc(strlen(instr.tokens[county]));
+				strcpy(tempy2, instr.tokens[county]);
+
+				//input and output file now both identified
+				int status;
+				pid_t pid = fork();
+				//setting input and output redirections using the same process that was used for them each individually
+				if (pid == -1)
+								printf("Forking Error");
+				else if(pid == 0)
+				{
+					//setting input
+					open(tempy1, O_RDONLY);
+					close(0);
+					dup(3);
+					close(3);
+					//setting output
+					open(tempy1, O_RDWR | O_CREAT | O_TRUNC);
+					close(1);
+					dup(3);
+					close(3);
+					//executing
+					execv(temp, parmlist);
+					printf("exec failed\n");
+				}
+				else
+					waitpid(pid, &status, 0);
+
+				free(tempy1);
+				tempy1 = NULL;
+				free(tempy2);
+				tempy2 = NULL;
+			}//done with both input and output redirection
+
+//WORKING ABOVE------------------------------------------------------
 
 			free(temp);
 			temp = NULL;
 			outred = 0;
 			inred = 0;
-			singlePipeCmd == 0;
 			pipe = 0;
-
+			singlePipeCmd = 0;
 		}//End of Built in Functions
-
-
 
 
 
