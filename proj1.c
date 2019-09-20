@@ -29,6 +29,7 @@ int main() {
 	char* token = NULL;
 	char* temp = NULL;
 	int county = 0;
+	int county2 = 0;
 
 	instruction instr;
 	instr.tokens = NULL;
@@ -86,7 +87,8 @@ int main() {
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
 
 		//Some variables that will help later
-		int i, j, k;																												//for for loops
+		int i, j, k;	
+		int pipeLocation, pipeLocation2 = 0;																											//for for loops
 		int truth, truth2 = 0;																											//for true false stuff
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
 		char *tempy2 = NULL;
@@ -491,11 +493,13 @@ int main() {
 			}
 
 			//creating parameter list to be passed to execv() for the built in commands
+			int parmlistlen = county + 2;
 			char* parmlist[county + 2]; 																																//size of parm list is county + 2. county for each parameter, 1 for the command name, and one for the NULL at the end of the list
 			parmlist[0] = temp;
 			for(i = 1; i < county + 1; i++) 																														//adding all the parameters to the parmlist
 					parmlist[i] = instr.tokens[i];
 			parmlist[county + 1] = NULL;
+
 
 			//Checking what sort of Redirections there are to do
 			for(i = 1; i < instr.numTokens; i++)
@@ -503,6 +507,36 @@ int main() {
 				if(strcmp(instr.tokens[i], "|") == 0)
 				{
 					pipe = 1;
+					pipeLocation = i;
+
+					tempy1 = (char *) malloc(strlen(instr.tokens[i+1]) + 6);
+					strcpy(tempy1, "/bin/");	
+					strcat(tempy1, instr.tokens[i+1]);
+
+					county = 0;
+					for(j = i+2; j < instr.numTokens; j++) {
+						if( j == instr.numTokens)
+							break;
+						else if(strcmp(instr.tokens[j], "|") == 0) {
+							pipe = 2;
+							pipeLocation2 = j;
+
+							tempy2 = (char *) malloc(strlen(instr.tokens[j+1]) + 6);
+							strcpy(tempy2, "/bin/");	
+							strcat(tempy2, instr.tokens[j+1]);
+
+							county2 = 0;
+							for(k = j+2; k < instr.numTokens; k++) {
+								if(k == instr.numTokens)
+									break;
+								else
+									county2++;
+							}
+							break;	
+						}
+						else
+							county++;
+					}
 					break;
 				}
 				else if(strcmp(instr.tokens[i], "<") == 0)
@@ -510,7 +544,28 @@ int main() {
 				else if(strcmp(instr.tokens[i], ">") == 0)
 					outred = 1;
 			}
-			//Done checking for Redirections
+			int parmlist2len = county + 2;
+			char* parmlist2[county + 2];
+
+			int parmlist3len = county2 + 2;
+			char* parmlist3[county2 + 2];
+
+			if(pipe == 1 || pipe == 2) {
+				parmlist2[0] = tempy1;
+				for(i = 1; i < county + 1; i++) {	
+					if(instr.tokens[i+pipeLocation+1] == "|")
+						break;
+					parmlist2[i] = instr.tokens[i+pipeLocation+1];
+				}
+				parmlist2[county + 1] = NULL;
+				if(pipe == 2) {
+					parmlist3[0] = tempy2;
+					for(i = 1; i < county2 + 1; i++) 																														//adding all the parameters to the parmlist
+							parmlist3[i] = instr.tokens[i+pipeLocation2+1];
+					parmlist3[county2 + 1] = NULL;
+				}
+			}
+
 
 			//This part works without any I/O Redirection or Piping so I'm not touching it
 			if (outred == 0 && inred == 0 && pipe == 0 && singlePipeCmd == 0)
