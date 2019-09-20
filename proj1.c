@@ -94,7 +94,7 @@ int main() {
 		char *tempy2 = NULL;
 		char *tempy3 = NULL;
 		int outred, inred, pipe = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
-		int singlePipeCmd = 0;
+		int pipeError = 0;
 
 		//SECTION: Converting environmental variables
 		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
@@ -463,14 +463,13 @@ int main() {
 			clearInstruction(&instr);
 			continue;
 		}
-		if (instr.numTokens == 1)
+
+		if (!strcmp(instr.tokens[0], "|"))
 		{
-			if (!strcmp(instr.tokens[0], "|"))
-			{
-				printf("bash: syntax error near unexpected token `|'\n");
-				singlePipeCmd = 1;
-			}
+			printf("bash: syntax error near unexpected token '|'\n");
+			pipeError = 1;
 		}
+
 
 
 		//SECTION: Built in commands (part 6 stuff)
@@ -497,18 +496,25 @@ int main() {
 			char* parmlist[county + 2]; 																																//size of parm list is county + 2. county for each parameter, 1 for the command name, and one for the NULL at the end of the list
 			parmlist[0] = temp;
 			for(i = 1; i < county + 1; i++) 																														//adding all the parameters to the parmlist
-					parmlist[i] = instr.tokens[i];
+				parmlist[i] = instr.tokens[i];
 			parmlist[county + 1] = NULL;
 
 
 			//Checking what sort of Redirections there are to do
 			for(i = 1; i < instr.numTokens; i++)
 			{
+				if( i == instr.numTokens)
+					break;
 				if(strcmp(instr.tokens[i], "|") == 0)
 				{
 					pipe = 1;
 					pipeLocation = i;
 
+					if( i == instr.numTokens-1) {
+						pipeError = 1;
+						printf("bash: syntax error near unexpected token '|'\n");
+						break;
+					}
 					tempy1 = (char *) malloc(strlen(instr.tokens[i+1]) + 6);
 					strcpy(tempy1, "/bin/");	
 					strcat(tempy1, instr.tokens[i+1]);
@@ -521,6 +527,11 @@ int main() {
 							pipe = 2;
 							pipeLocation2 = j;
 
+							if( j == instr.numTokens-1) {
+								pipeError = 1;
+								printf("bash: syntax error near unexpected token '|'\n");
+								break;
+							}
 							tempy2 = (char *) malloc(strlen(instr.tokens[j+1]) + 6);
 							strcpy(tempy2, "/bin/");	
 							strcat(tempy2, instr.tokens[j+1]);
@@ -550,7 +561,7 @@ int main() {
 			int parmlist3len = county2 + 2;
 			char* parmlist3[county2 + 2];
 
-			if(pipe == 1 || pipe == 2) {
+			if(pipe == 1 || pipe == 2 && pipeError == 0) {
 				parmlist2[0] = tempy1;
 				for(i = 1; i < county + 1; i++) {	
 					if(instr.tokens[i+pipeLocation+1] == "|")
@@ -568,7 +579,7 @@ int main() {
 
 
 			//This part works without any I/O Redirection or Piping so I'm not touching it
-			if (outred == 0 && inred == 0 && pipe == 0 && singlePipeCmd == 0)
+			if (outred == 0 && inred == 0 && pipe == 0 && pipeError == 0)
 			{
 				int status;																																									//this is for the waitpid function. status is 0 if there is no error.
 				pid_t pid = fork();
@@ -585,7 +596,7 @@ int main() {
 			}
 
 			//Just Output Redirection
-			else if(outred == 1 && inred == 0 && pipe == 0 && singlePipeCmd == 0)
+			else if(outred == 1 && inred == 0 && pipe == 0 && pipeError == 0)
 			{
 				int status;
 				pid_t pid = fork();
@@ -618,7 +629,7 @@ int main() {
 			}
 
 			//Just Input Redirection
-			else if(outred == 0 && inred == 1 && pipe == 0 && singlePipeCmd == 0)
+			else if(outred == 0 && inred == 1 && pipe == 0 && pipeError == 0)
 			{
 				printf("TEST: Just Input redirection\n");
 				int status;
@@ -656,7 +667,7 @@ int main() {
 
 //WORKING HERE-------------------------------------------------
 			//Both input and output redirection
-			else if(outred == 1 && inred == 1 && pipe == 0 && singlePipeCmd == 0)
+			else if(outred == 1 && inred == 1 && pipe == 0 && pipeError == 0)
 			{
 				printf("TEST: Godzirraaa says there is both input and output redirection mofo\n");
 				//tempy1 will hold the input file and tempy2 will hold the output file
@@ -721,7 +732,7 @@ int main() {
 			outred = 0;
 			inred = 0;
 			pipe = 0;
-			singlePipeCmd = 0;
+			pipeError = 0;
 		}//End of Built in Functions
 
 
