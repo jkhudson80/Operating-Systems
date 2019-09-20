@@ -39,11 +39,13 @@ int main() {
 	{
 		printf("%s@%s:%s>", getenv("USER"), getenv("MACHINE"), getenv("PWD"));
 
+		clearInstruction(&instr);
 		// loop reads character sequences separated by whitespace
 		do
 		{
 			//scans for next token and allocates token var to size of scanned token
 			scanf("%ms", &token);
+
 			temp = (char*)malloc((strlen(token) + 1) * sizeof(char));
 
 			int i;
@@ -69,20 +71,18 @@ int main() {
 					start = i + 1;
 				}
 			}
-
 			if (start < strlen(token))
 			{
 				memcpy(temp, token + start, strlen(token) - start);
 				temp[i-start] = '\0';
 				addToken(&instr, temp);
 			}
-
 			//free and reset variables
 			free(token);
 			free(temp);
-
 			token = NULL;
 			temp = NULL;
+
 		} while ('\n' != getchar());    //until end of line is reached
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
 
@@ -93,7 +93,7 @@ int main() {
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
 		char *tempy2 = NULL;
 		char *tempy3 = NULL;
-		int outred, inred, pipe = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
+		int outred, inred, pipey = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
 		int pipeError = 0;
 
 		//SECTION: Converting environmental variables
@@ -464,10 +464,12 @@ int main() {
 			continue;
 		}
 
-		if (!strcmp(instr.tokens[0], "|"))
+		if (!strcmp(instr.tokens[0], "|") || !strcmp(instr.tokens[instr.numTokens -1], "|"))
 		{
 			printf("bash: syntax error near unexpected token '|'\n");
+			clearInstruction(&instr);
 			pipeError = 1;
+			continue;
 		}
 
 
@@ -507,14 +509,9 @@ int main() {
 					break;
 				if(strcmp(instr.tokens[i], "|") == 0)
 				{
-					pipe = 1;
+					pipey = 1;
 					pipeLocation = i;
 
-					if( i == instr.numTokens-1) {
-						pipeError = 1;
-						printf("bash: syntax error near unexpected token '|'\n");
-						break;
-					}
 					tempy1 = (char *) malloc(strlen(instr.tokens[i+1]) + 6);
 					strcpy(tempy1, "/bin/");	
 					strcat(tempy1, instr.tokens[i+1]);
@@ -524,14 +521,9 @@ int main() {
 						if( j == instr.numTokens)
 							break;
 						else if(strcmp(instr.tokens[j], "|") == 0) {
-							pipe = 2;
+							pipey = 2;
 							pipeLocation2 = j;
 
-							if( j == instr.numTokens-1) {
-								pipeError = 1;
-								printf("bash: syntax error near unexpected token '|'\n");
-								break;
-							}
 							tempy2 = (char *) malloc(strlen(instr.tokens[j+1]) + 6);
 							strcpy(tempy2, "/bin/");	
 							strcat(tempy2, instr.tokens[j+1]);
@@ -561,7 +553,7 @@ int main() {
 			int parmlist3len = county2 + 2;
 			char* parmlist3[county2 + 2];
 
-			if(pipe == 1 || pipe == 2 && pipeError == 0) {
+			if(pipey == 1 || pipey == 2 && pipeError == 0) {
 				parmlist2[0] = tempy1;
 				for(i = 1; i < county + 1; i++) {	
 					if(instr.tokens[i+pipeLocation+1] == "|")
@@ -569,7 +561,7 @@ int main() {
 					parmlist2[i] = instr.tokens[i+pipeLocation+1];
 				}
 				parmlist2[county + 1] = NULL;
-				if(pipe == 2) {
+				if(pipey == 2) {
 					parmlist3[0] = tempy2;
 					for(i = 1; i < county2 + 1; i++) 																														//adding all the parameters to the parmlist
 							parmlist3[i] = instr.tokens[i+pipeLocation2+1];
@@ -579,7 +571,7 @@ int main() {
 
 
 			//This part works without any I/O Redirection or Piping so I'm not touching it
-			if (outred == 0 && inred == 0 && pipe == 0 && pipeError == 0)
+			if (outred == 0 && inred == 0 && pipey == 0 && pipeError == 0)
 			{
 				int status;																																									//this is for the waitpid function. status is 0 if there is no error.
 				pid_t pid = fork();
@@ -596,7 +588,7 @@ int main() {
 			}
 
 			//Just Output Redirection
-			else if(outred == 1 && inred == 0 && pipe == 0 && pipeError == 0)
+			else if(outred == 1 && inred == 0 && pipey == 0 && pipeError == 0)
 			{
 				int status;
 				pid_t pid = fork();
@@ -629,9 +621,8 @@ int main() {
 			}
 
 			//Just Input Redirection
-			else if(outred == 0 && inred == 1 && pipe == 0 && pipeError == 0)
+			else if(outred == 0 && inred == 1 && pipey == 0 && pipeError == 0)
 			{
-				printf("TEST: Just Input redirection\n");
 				int status;
 				pid_t pid = fork();
 				//need to get tempy to equal the file that the input is coming from
@@ -648,7 +639,7 @@ int main() {
 
 
 				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
-								printf("Forking Error");
+					printf("Forking Error");
 				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
 				{
 					open(tempy1, O_RDONLY);
@@ -667,9 +658,8 @@ int main() {
 
 //WORKING HERE-------------------------------------------------
 			//Both input and output redirection
-			else if(outred == 1 && inred == 1 && pipe == 0 && pipeError == 0)
+			else if(outred == 1 && inred == 1 && pipey == 0 && pipeError == 0)
 			{
-				printf("TEST: Godzirraaa says there is both input and output redirection mofo\n");
 				//tempy1 will hold the input file and tempy2 will hold the output file
 				//finding the input file
 				for(i = 0; i < instr.numTokens; i++)
@@ -699,7 +689,7 @@ int main() {
 				pid_t pid = fork();
 				//setting input and output redirections using the same process that was used for them each individually
 				if (pid == -1)
-								printf("Forking Error");
+					printf("Forking Error");
 				else if(pid == 0)
 				{
 					//setting input
@@ -724,18 +714,57 @@ int main() {
 				free(tempy2);
 				tempy2 = NULL;
 			}//done with both input and output redirection
+			// Piping
+			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0) {
+				// 0 is read end, 1 is write end 
+				int status;
+			    int fd[2];  
 
+			    pid_t pid1 = fork();
+			    if(pid1 == -1)
+			    	printf("Forking Error");
+			    else if(pid1 == 0) {
+			    	int piper = pipe(fd);
+			    	if( piper == -1)
+			    		printf("Piping Error\n"); 
+			    	else if(piper == 0) {
+			    		pid_t pid2 = fork();
+			    		if(pid2 == -1)
+			    			printf("Forking Error");
+			    		else if(pid2 == 0) {
+			    			close(1);
+			    			dup(fd[1]);
+			    			close(fd[0]);
+			    			close(fd[1]);
+			    			execv(parmlist[0], parmlist);
+			    		}
+			    		else {
+			    			close(0);
+			    			dup(fd[0]);
+			    			close(fd[0]);
+			    			close(fd[1]);
+			    			execv(parmlist2[0], parmlist2);
+			    		}
+			    	}
+			    }
+			    else {
+			    	waitpid(pid1, &status, 0);
+			    }
+			}			  
 //WORKING ABOVE------------------------------------------------------
+
 
 			free(temp);
 			temp = NULL;
+			free(tempy1);
+		    tempy1 = NULL;
+		    free(tempy2);
+		    tempy2 = NULL;
 			outred = 0;
 			inred = 0;
-			pipe = 0;
+			pipey = 0;
 			pipeError = 0;
 		}//End of Built in Functions
-
-
 
 		//**** Should probably turn these into functions that can be called in other places to make it easier for I/O redirections and piping ***
 		//SECTION: Own commands (part 10)
