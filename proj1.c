@@ -19,6 +19,14 @@ typedef struct
 	int numTokens;
 } instruction;
 
+typedef struct
+{
+	char* command;
+	char* alias;
+} com_alias;
+
+
+void echo(char** parmlist, int len, char* output);
 void addToken(instruction* instr_ptr, char* tok);
 void printTokens(instruction* instr_ptr);
 void clearInstruction(instruction* instr_ptr);
@@ -34,6 +42,14 @@ int main() {
 	instruction instr;
 	instr.tokens = NULL;
 	instr.numTokens = 0;
+
+	com_alias aliaslist[10];
+	int numalias = 0;
+	for(int i = 0; i < 10; i++)
+	{
+			aliaslist[i].command = NULL;
+			aliaslist[i].alias = NULL;
+	}
 
 	while (1)
 	{
@@ -87,7 +103,7 @@ int main() {
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
 
 		//Some variables that will help later
-		int i, j, k;	
+		int i, j, k;
 		int pipeLocation, pipeLocation2 = 0;																											//for for loops
 		int truth, truth2 = 0;																											//for true false stuff
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
@@ -473,10 +489,123 @@ int main() {
 		}
 
 
+		//Part 10 alias
+		//we want to do alias stuff now so that we can execute whatever commands the alias turns into afterwards
+		//add alias
+		//just making sure that they're free, might not be necessary but just a precaution
+		free(tempy1);
+		free(tempy2);
+		tempy1 = NULL;
+		tempy2 = NULL;
+		int county3 = 0;
+		for(i = 0; i < numofcom; i++)
+		{
+			if(strcmp(instr.tokens[comspots[i]], "alias") == 0)
+			{
+				county = 0;
+				county2 = 0;
+				for(j = i + 1; j < instr.numTokens; j++)
+				{
+					if (strcmp(instr.tokens[j], "=") == 0)
+						break;
+					else
+						county++;
+				}
+				for(j = i  + 1; j < county + i  + 1; j++)
+				{
+					county2 = county2 + strlen(instr.tokens[j]);
+					if(j != county  + i - 1)
+						county2 = county2 + 1;
+				}
+				tempy1 = (char *) malloc(county2 + 1);;
+				for(j = i + 1; j < county + i + 1; j++)
+				{
+					if (j == i + 1)
+						strcpy(tempy1, instr.tokens[j]);
+					else
+						strcat(tempy1, instr.tokens[j]);
+					if (j != county + i)
+						strcat(tempy1, " ");
+				}
+				//tempy1 is now storing the "command" part of the alias
+				//"=" sign is at i + county  + 1
+				county2 = 0;
+				for(j = county + i + 2; j < instr.numTokens; j++)
+				{
+					if(strcmp(instr.tokens[j], "<") == 0 || strcmp(instr.tokens[j], ">") == 0 || strcmp(instr.tokens[j], "|") == 0)
+						break;
+					county2 = county2 + 1;
+				}
+				for(j = 0; j < county2; j++)
+				{
+					county3 = county3 + strlen(instr.tokens[i + county + 2 + j]);
+					if(j != county + i + 1 + county2)
+						county3++;
+				}
+				tempy2 = (char *) malloc(county3);
+				for(j = 0; j < county2; j++)
+				{
+					if(j == 0)
+						strcpy(tempy2, instr.tokens[i + county + 2 + j]);
+					else
+						strcat(tempy2, instr.tokens[i + county + 2 + j]);
+					if (j != county2 - 1)
+						strcat(tempy2, " ");
+				}
+				//tempy2 is now holding the right side of the "=" sign for an alias
+
+				//checking if the command already has an alias
+				county = -1;																														//-1 to say there wasn't a match thus far
+				for(j = 0; j < numalias; j++)
+				{
+					if(strcmp(tempy1, aliaslist[j].command) == 0)
+						county = j;
+				}
+				if(county != -1)
+				{
+					strcpy(aliaslist[county].command, tempy1);
+					strcpy(aliaslist[county].alias, tempy2);
+				}
+				else if (numalias < 10)																							//max 10 allias
+				{
+					aliaslist[numalias].command = (char *) malloc(strlen(tempy1) + 1);
+					strcpy(aliaslist[numalias].command, tempy1);
+					aliaslist[numalias].alias = (char *) malloc(strlen(tempy2) + 1);
+					strcpy(aliaslist[numalias].alias, tempy2);
+					numalias++;
+				}
+				else
+					printf("Error: the alias list is already maxed out at 10\n");
+				free(tempy1);
+				free(tempy2);
+				tempy1 = NULL;
+				tempy2 = NULL;
+			}
+		}//done with alias
+
+
+		//unalias
+	/*	for(i = 0; i < numofcom; i++)
+		{
+			if(strcmp)
+
+		}
+*/
+
+		//converting any alias to there commands
+		//the hard part about this is if you're turning a one word thing like "my_ls" to something like "ls -l"
+		//because then there are more tokens and you'd have to increment instr.numTokens and shift everything so that
+		//parmlist doesn't get affected and you can still iterate through the tokens correctly.
+		//x word to x word alias conversions should be easy though.
+
+
+
+
+
 
 		//SECTION: Built in commands (part 6 stuff)
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
-		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0 && strcmp(instr.tokens[0], "echo") != 0 && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias"))
+		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0  && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias"))
 		{
 			temp = (char *) malloc(strlen(instr.tokens[0]) + 6);																				//+6 because of the normal + 1 + the characters in "/bin/"
 			strcpy(temp, "/bin/");																																			//***** part 5 stuff ****************
@@ -513,7 +642,7 @@ int main() {
 					pipeLocation = i;
 
 					tempy1 = (char *) malloc(strlen(instr.tokens[i+1]) + 6);
-					strcpy(tempy1, "/bin/");	
+					strcpy(tempy1, "/bin/");
 					strcat(tempy1, instr.tokens[i+1]);
 
 					county = 0;
@@ -525,7 +654,7 @@ int main() {
 							pipeLocation2 = j;
 
 							tempy2 = (char *) malloc(strlen(instr.tokens[j+1]) + 6);
-							strcpy(tempy2, "/bin/");	
+							strcpy(tempy2, "/bin/");
 							strcat(tempy2, instr.tokens[j+1]);
 
 							county2 = 0;
@@ -535,7 +664,7 @@ int main() {
 								else
 									county2++;
 							}
-							break;	
+							break;
 						}
 						else
 							county++;
@@ -555,7 +684,7 @@ int main() {
 
 			if(pipey == 1 || pipey == 2 && pipeError == 0) {
 				parmlist2[0] = tempy1;
-				for(i = 1; i < county + 1; i++) {	
+				for(i = 1; i < county + 1; i++) {
 					if(instr.tokens[i+pipeLocation+1] == "|")
 						break;
 					parmlist2[i] = instr.tokens[i+pipeLocation+1];
@@ -570,6 +699,8 @@ int main() {
 			}
 
 
+			//STARTING TO EXECUTE COMMANDS
+			//----------------------------
 			//This part works without any I/O Redirection or Piping so I'm not touching it
 			if (outred == 0 && inred == 0 && pipey == 0 && pipeError == 0)
 			{
@@ -579,9 +710,19 @@ int main() {
 								printf("Forking Error");
 				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
 				{
-					execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
-					printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
-					exit(1);
+					//Part 10 echo
+					if (strcmp(temp, "/bin/echo") == 0)
+					{
+						char* output = NULL;
+						echo(parmlist, parmlistlen, output);
+						exit(1);
+					}
+					else
+					{
+						execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
+						printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
+							exit(1);
+						}
 				}
 				else
 					waitpid(pid, &status, 0);																															//this else is for the parent to hit. The parent hits this while the child hits the else if. Parent waits for child to finish
@@ -656,10 +797,19 @@ int main() {
 				tempy1 = NULL;
 			}//end of input redirection
 
-//WORKING HERE-------------------------------------------------
 			//Both input and output redirection
 			else if(outred == 1 && inred == 1 && pipey == 0 && pipeError == 0)
 			{
+				if (strcmp(temp, "/bin/echo") == 0)
+				{
+					clearInstruction(&instr);
+					outred = 0;
+					inred = 0;
+					pipey = 0;
+					pipeError = 0;
+					continue;
+				}
+
 				//tempy1 will hold the input file and tempy2 will hold the output file
 				//finding the input file
 				for(i = 0; i < instr.numTokens; i++)
@@ -715,10 +865,11 @@ int main() {
 				tempy2 = NULL;
 			}//done with both input and output redirection
 			// Piping
-			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0) {
-				// 0 is read end, 1 is write end 
+			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0)
+			{
+				// 0 is read end, 1 is write end
 				int status;
-			    int fd[2];  
+			    int fd[2];
 
 			    pid_t pid1 = fork();
 			    if(pid1 == -1)
@@ -726,13 +877,13 @@ int main() {
 			    else if(pid1 == 0) {
 			    	int piper = pipe(fd);
 			    	if( piper == -1)
-			    		printf("Piping Error\n"); 
+			    		printf("Piping Error\n");
 			    	else if(piper == 0) {
 			    		pid_t pid2 = fork();
 			    		if(pid2 == -1)
 			    			printf("Forking Error");
 			    		else if(pid2 == 0) {
-			    			close(1);
+								close(1);
 			    			dup(fd[1]);
 			    			close(fd[0]);
 			    			close(fd[1]);
@@ -750,43 +901,18 @@ int main() {
 			    else {
 			    	waitpid(pid1, &status, 0);
 			    }
-			}			  
-//WORKING ABOVE------------------------------------------------------
-
-
+			}
 			free(temp);
 			temp = NULL;
 			free(tempy1);
-		    tempy1 = NULL;
-		    free(tempy2);
-		    tempy2 = NULL;
+			tempy1 = NULL;
+			free(tempy2);
+			tempy2 = NULL;
 			outred = 0;
 			inred = 0;
 			pipey = 0;
 			pipeError = 0;
 		}//End of Built in Functions
-
-		//**** Should probably turn these into functions that can be called in other places to make it easier for I/O redirections and piping ***
-		//SECTION: Own commands (part 10)
-		for (i = 0; i < instr.numTokens; i++)
-		{
-			//"echo" command
-			//*******echo is one of the built in commands in part 10**** this works but later we should just use the built in since we know that works completely correctly for every single test case
-			if(!strcmp(instr.tokens[i], "echo")) 													//***the strcmp function returns 0 if the two strings are equal and a nonzero number if they aren't equal
-			{
-				int j;
-				for (j = i+1; j < instr.numTokens; j++)
-				{
-					if (!strcmp(instr.tokens[j], "|") || !strcmp(instr.tokens[j], "<") || !strcmp(instr.tokens[j], ">") || !strcmp(instr.tokens[j], "&"))					//echo command shouldn't print these 4 special characters
-						break;
-					else if (instr.tokens[j] != NULL)														//if you don't hit a special character keep printing instructions until the end
-						printf("%s ", instr.tokens[j]);
-				}
-				printf("\n");
-				break;
-			}
-		}
-
 
 		//SECTION: ending stuff from parserhelp.c
 		addNull(&instr);
@@ -795,6 +921,39 @@ int main() {
 	}
 
 	return 0;
+}
+
+
+//echo command for part 10
+void echo(char** parmlist, int len, char* output)
+{
+	int i;
+	if(output == NULL)
+	{
+		for(i = 1; i < len - 1; i++)
+			printf("%s ", parmlist[i]);
+		printf("\n");
+	}
+	else
+	{
+		struct stat stats;
+		if(stat(output, &stats) != 0)
+		{
+			printf("Invalid file path: %s\n", output);
+			exit(1);
+		}
+		else
+		{
+			FILE *f = fopen(output, "rw");
+			if (f == NULL)
+		  {
+		    printf("Error opening the file\n");
+		    exit(1);
+		  }
+			for(i = 1; i < len - 1; i++)
+				fprintf(f, "%s ", parmlist[i]);
+		}
+	}
 }
 
 
