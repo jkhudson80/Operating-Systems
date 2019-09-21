@@ -45,7 +45,8 @@ int main() {
 
 	com_alias aliaslist[10];
 	int numalias = 0;
-	for(int i = 0; i < 10; i++)
+	int i;
+	for(i = 0; i < 10; i++)
 	{
 			aliaslist[i].command = NULL;
 			aliaslist[i].alias = NULL;
@@ -64,7 +65,6 @@ int main() {
 
 			temp = (char*)malloc((strlen(token) + 1) * sizeof(char));
 
-			int i;
 			int start = 0;
 			for (i = 0; i < strlen(token); i++)
 			{
@@ -103,7 +103,7 @@ int main() {
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
 
 		//Some variables that will help later
-		int i, j, k;
+		int j, k;
 		int pipeLocation, pipeLocation2 = 0;																											//for for loops
 		int truth, truth2 = 0;																											//for true false stuff
 		char *tempy1 = NULL;																								//temporary vars for strings to hold intermitent calculations
@@ -181,6 +181,44 @@ int main() {
 			}
 		}
 		//Done identifying where all the commands are
+
+
+		// cd PATH
+		int cdFlag = 0;
+		int singleCD = 0;
+		if(!strcmp(instr.tokens[0], "cd")) {
+			if(instr.numTokens == 1) {
+				cdFlag = 1;
+				singleCD = 1;
+			} else {
+				if(instr.tokens[1][0] != '/') {
+					tempy1 = (char *) malloc(strlen(getenv("PWD")) + strlen(instr.tokens[1]) + 2);
+					strcpy(tempy1, getenv("PWD"));	
+					strcat(tempy1, "/");
+					strcat(tempy1, instr.tokens[1]);
+
+					instr.tokens[1] = (char *) malloc(strlen(getenv("PWD")) + strlen(instr.tokens[1]) + 2);
+					strcpy(instr.tokens[1], tempy1);
+					printf("New File: %s\n", instr.tokens[1]);
+				}
+
+
+				struct stat stats;
+			    stat(instr.tokens[1], &stats);
+
+			    if (S_ISDIR(stats.st_mode)) {
+			    	cdFlag = 1;
+			    }
+		    	else {
+			    	printf("bash: cd: %s: No such file or directory\n", instr.tokens[1]);
+			    	clearInstruction(&instr);
+					continue;
+			    }
+			}
+		}	//Done with cd
+
+
+
 
 
 		//SECTION: Identifying where all the file paths are
@@ -600,12 +638,9 @@ int main() {
 
 
 
-
-
-
 		//SECTION: Built in commands (part 6 stuff)
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
-		if(strcmp(instr.tokens[0], "exit") != 0 && strcmp(instr.tokens[0], "cd") != 0  && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias"))
+		if(strcmp(instr.tokens[0], "exit") != 0  && strcmp(instr.tokens[0], "alias") != 0 && strcmp(instr.tokens[0], "unalias"))
 		{
 			temp = (char *) malloc(strlen(instr.tokens[0]) + 6);																				//+6 because of the normal + 1 + the characters in "/bin/"
 			strcpy(temp, "/bin/");																																			//***** part 5 stuff ****************
@@ -717,11 +752,30 @@ int main() {
 						echo(parmlist, parmlistlen, output);
 						exit(1);
 					}
+					else if(cdFlag == 1 && singleCD == 0) {
+						printf("path: %s\n", instr.tokens[1]);
+						int chDirTest = chdir(instr.tokens[1]);
+						if(chDirTest == -1) {
+							printf("chdir failed\n");
+							exit(1);
+						} else if (chDirTest == 0) {
+							setenv("PWD", instr.tokens[1], 1);
+						}
+					}
+					else if(cdFlag == 1 && singleCD == 1) {
+						int chDirTest = chdir(getenv("HOME"));
+						if(chDirTest == -1) {
+							printf("chdir failed\n");
+							exit(1);
+						} else if (chDirTest == 0) {
+							setenv("PWD", getenv("HOME"), 1);
+						}
+					}
 					else
 					{
 						execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
 						printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
-							exit(1);
+						exit(1);
 						}
 				}
 				else
@@ -729,7 +783,7 @@ int main() {
 			}
 
 			//Just Output Redirection
-			else if(outred == 1 && inred == 0 && pipey == 0 && pipeError == 0)
+			else if(outred == 1 && inred == 0 && pipey == 0 && pipeError == 0 && cdFlag == 0)
 			{
 				int status;
 				pid_t pid = fork();
@@ -762,7 +816,7 @@ int main() {
 			}
 
 			//Just Input Redirection
-			else if(outred == 0 && inred == 1 && pipey == 0 && pipeError == 0)
+			else if(outred == 0 && inred == 1 && pipey == 0 && pipeError == 0 && cdFlag == 0)
 			{
 				int status;
 				pid_t pid = fork();
@@ -798,7 +852,7 @@ int main() {
 			}//end of input redirection
 
 			//Both input and output redirection
-			else if(outred == 1 && inred == 1 && pipey == 0 && pipeError == 0)
+			else if(outred == 1 && inred == 1 && pipey == 0 && pipeError == 0 && cdFlag == 0)
 			{
 				if (strcmp(temp, "/bin/echo") == 0)
 				{
@@ -865,7 +919,7 @@ int main() {
 				tempy2 = NULL;
 			}//done with both input and output redirection
 			// Piping
-			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0)
+			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0 && cdFlag == 0)
 			{
 				// 0 is read end, 1 is write end
 				int status;
