@@ -942,6 +942,7 @@ int main() {
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist[0], parmlist);
+						printf("exec failed\n");
 			    		}
 			    		else {
 			    			close(0);
@@ -949,6 +950,7 @@ int main() {
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist2[0], parmlist2);
+						printf("exec failed\n");
 			    		}
 			    	}
 			    }
