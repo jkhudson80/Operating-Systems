@@ -101,7 +101,6 @@ int main() {
 
 		} while ('\n' != getchar());    //until end of line is reached
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
-		printf("1\n");
 		//Some variables that will help later
 		int j, k;
 		int pipeLocation, pipeLocation2 = 0;																											//for for loops
@@ -182,9 +181,10 @@ int main() {
 		}
 		//Done converting environmental variables
 
+		int backgroundFlag = 0;
 		// Ignore if & is first token
 		if( !(strcmp(instr.tokens[0], "&")) ) {
-			for(i = 0; i < instr.numTokens-1; i++) {
+			for(i = 0; i < instr.numTokens; i++) {
 				instr.tokens[i] = (char *) malloc(strlen(instr.tokens[i+1]) + 1);
 				strcpy(instr.tokens[i], instr.tokens[i+1]);
 				instr.numTokens--;
@@ -196,6 +196,9 @@ int main() {
 			if( !(strcmp(instr.tokens[i], "&")) ) {
 				if( i != instr.numTokens-1) {
 					amberNotLast = 1;
+				} else {
+					backgroundFlag = 1;
+					instr.numTokens--;
 				}
 			}
 		}
@@ -204,7 +207,6 @@ int main() {
 			clearInstruction(&instr);
 			continue;
 		}
-		
 
 		// cd PATH
 		int cdFlag = 0;
