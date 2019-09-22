@@ -101,7 +101,7 @@ int main() {
 
 		} while ('\n' != getchar());    //until end of line is reached
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
-
+		printf("1\n");
 		//Some variables that will help later
 		int j, k;
 		int pipeLocation, pipeLocation2 = 0;																											//for for loops
@@ -111,6 +111,26 @@ int main() {
 		char *tempy3 = NULL;
 		int outred, inred, pipey = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
 		int pipeError = 0;
+
+		//SECTION: Identifying where all the commands are
+		int comspots[instr.numTokens];																														//initializing to this size because there can't be more commands then there are tokens
+		int numofcom = 0;																																				//the number of commands, valid or invalid, that the user typed in
+		//first token is always going to be a command except for when it is a & where the & will be ignored and the next token is a command that will still be executed in the foreground per the second bullet point of part 9
+		for (i = 0; i < instr.numTokens; i++)
+		{
+			if(i == 0 && (strcmp(instr.tokens[0], "&") != 0)) 																						//if the first token is not a & then it is a commands
+			{
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+			else if (i != 0 && ((strcmp(instr.tokens[i-1], "|") == 0) || (strcmp(instr.tokens[i-1], "&") == 0)))
+			{
+				comspots[numofcom] = i;
+				numofcom++;
+			}
+		}
+		//Done identifying where all the commands are
+
 
 		//SECTION: Converting environmental variables
 		for (i = 0; i < instr.numTokens; i++) 															//going through all the separated instructions that were inputted
@@ -162,26 +182,29 @@ int main() {
 		}
 		//Done converting environmental variables
 
-
-		//SECTION: Identifying where all the commands are
-		int comspots[instr.numTokens];																														//initializing to this size because there can't be more commands then there are tokens
-		int numofcom = 0;																																				//the number of commands, valid or invalid, that the user typed in
-		//first token is always going to be a command except for when it is a & where the & will be ignored and the next token is a command that will still be executed in the foreground per the second bullet point of part 9
-		for (i = 0; i < instr.numTokens; i++)
-		{
-			if(i == 0 && (strcmp(instr.tokens[0], "&") != 0)) 																						//if the first token is not a & then it is a commands
-			{
-				comspots[numofcom] = i;
-				numofcom++;
-			}
-			else if ((strcmp(instr.tokens[i-1], "|") == 0) || (strcmp(instr.tokens[i-1], "&") == 0))
-			{
-				comspots[numofcom] = i;
-				numofcom++;
+		// Ignore if & is first token
+		if( !(strcmp(instr.tokens[0], "&")) ) {
+			for(i = 0; i < instr.numTokens-1; i++) {
+				instr.tokens[i] = (char *) malloc(strlen(instr.tokens[i+1]) + 1);
+				strcpy(instr.tokens[i], instr.tokens[i+1]);
+				instr.numTokens--;
 			}
 		}
-		//Done identifying where all the commands are
-
+		// checks to make sure & is last
+		int amberNotLast = 0;
+		for(i = 0; i < instr.numTokens; i++) {
+			if( !(strcmp(instr.tokens[i], "&")) ) {
+				if( i != instr.numTokens-1) {
+					amberNotLast = 1;
+				}
+			}
+		}
+		if (amberNotLast == 1) {
+			printf("Invalid null command.\n");
+			clearInstruction(&instr);
+			continue;
+		}
+		
 
 		// cd PATH
 		int cdFlag = 0;
@@ -942,7 +965,7 @@ int main() {
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist[0], parmlist);
-						printf("exec failed\n");
+			    			printf("execv failed\n");		
 			    		}
 			    		else {
 			    			close(0);
@@ -950,7 +973,7 @@ int main() {
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist2[0], parmlist2);
-						printf("exec failed\n");
+			    			printf("execv failed\n");		
 			    		}
 			    	}
 			    }
