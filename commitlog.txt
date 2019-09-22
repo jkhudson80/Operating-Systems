@@ -1,0 +1,237 @@
+Commits on Sep 22, 2019 
+Final Commit 
+ 
+jkhudson80 committed 4 minutes ago 
+Verified  
+
+4ccd5e3 
+
+Update README 
+ 
+gustavovalery committed 7 minutes ago 
+Verified  
+
+9029374 
+
+Readme 
+ 
+gustavovalery committed 1 hour ago 
+Verified  
+
+2ab189f 
+
+makefile 
+ 
+gustavovalery committed 2 hours ago 
+Verified  
+
+8800ccf 
+
+Removed end '&', marked as background command 
+ 
+gustavovalery committed 2 hours ago 
+Verified  
+
+be33603 
+
+first & is ignored, & syntax errors complete 
+ 
+gustavovalery committed 3 hours ago 
+Verified  
+
+a37777d 
+
+Commits on Sep 21, 2019 
+Added printf("exec failed\n"); x 2 
+ 
+gustavovalery committed yesterday 
+Verified  
+
+169c642 
+
+cd Command complete 
+ 
+gustavovalery committed yesterday 
+Verified  
+
+2d52d6f 
+
+Add files via upload … 
+ 
+jkhudson80 committed 2 days ago 
+Verified  
+
+7f5ebc3 
+
+Commits on Sep 20, 2019 
+Piping works for one pipe … 
+ 
+gustavovalery committed 2 days ago 
+Verified  
+
+7063cb8 
+
+Commits on Sep 19, 2019 
+Added Piping Error checks as indicated on: … 
+ 
+gustavovalery committed 3 days ago 
+Verified  
+
+16a6439 
+
+Piping Commands and their params are parsed … 
+ 
+gustavovalery committed 3 days ago 
+Verified  
+
+6f7e2fe 
+
+part 7 completely done now … 
+ 
+jkhudson80 committed 3 days ago 
+Verified  
+
+701bc17 
+
+Commits on Sep 18, 2019 
+Single pipe error feature … 
+ 
+gustavovalery committed 4 days ago 
+Verified  
+
+3799b15 
+
+Commits on Sep 17, 2019 
+almost all of part 7 … 
+ 
+jkhudson80 committed 5 days ago 
+Verified  
+
+e288b6c 
+
+Add files via upload … 
+ 
+jkhudson80 committed 6 days ago 
+Verified  
+
+ae5f6c1 
+
+Commits on Sep 13, 2019 
+A lot of stuff … 
+ 
+jkhudson80 committed 9 days ago 
+Verified  
+
+27c7d97 
+
+Commits on Sep 11, 2019 
+Merge branch 'master' into testing 
+ 
+ArtirHyseni committed 11 days ago 
+Verified  
+
+a47725d 
+
+Add files via upload … 
+ 
+jkhudson80 committed 11 days ago 
+Verified  
+
+25c759d 
+
+Commits on Sep 10, 2019 
+Add files via upload … 
+ 
+jkhudson80 committed 12 days ago 
+Verified  
+
+4d69810 
+
+Commits on Sep 9, 2019 
+Add files via upload … 
+ 
+jkhudson80 committed 13 days ago 
+Verified  
+
+2df7170 
+
+Add files via upload … 
+ 
+jkhudson80 committed 13 days ago 
+Verified  
+
+2aa17bc 
+
+Commits on Sep 5, 2019 
+number 4 
+ 
+gustavovalery committed 17 days ago 
+Verified  
+
+2e0a9ea 
+
+Add files via upload … 
+ 
+jkhudson80 committed 17 days ago 
+Verified  
+
+3a5f5fd 
+
+Space between PWD and '>' 
+ 
+gustavovalery committed 17 days ago 
+Verified  
+
+04eaac0 
+
+Use: !strcmp(a, b) … 
+ 
+gustavovalery committed 17 days ago 
+Verified  
+
+d498bef 
+
+More Code Cleaning 
+ 
+gustavovalery committed 17 days ago 
+Verified  
+
+86e781b 
+
+Cleaned Up some code … 
+ 
+gustavovalery committed 17 days ago 
+Verified  
+
+b0b2d3f 
+
+Add files via upload … 
+ 
+jkhudson80 committed 18 days ago 
+Verified  
+
+b12d8c7 
+
+Commits on Sep 4, 2019 
+Add files via upload … 
+ 
+gustavovalery committed 18 days ago 
+Verified  
+
+de364a3 
+
+Add files via upload … 
+ 
+gustavovalery committed 18 days ago 
+Verified  
+
+fa10e19 
+
+Commits on Sep 2, 2019 
+Create README 
+ 
+jkhudson80 committed 20 days ago 
+Verified  
+
+bb14ebd 
+
