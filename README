@@ -1,1 +1,27 @@
-README file
+James Keifer Hudson, Artir Hyseni, and Gustavo Valery
+
+- Division of Labor:
+  project was worked on multiple times on one computer but in a group setting at the library.
+  
+- Contents of TAR:
+  - README
+  - proj1.c : all of our implemented shell code
+  - makefile: compiles proj1.c and creates and executable named shell
+  
+- Compilation Instructions
+  > make
+  > ./shell
+  
+- Known Bugs/Incomplete functions:
+  - PART8: Pipes
+    - Everything implemented except double pipe. Can find out commented out attempt at double pipe on line (xxx)
+  - PART9: Background Process
+    - Checks to see any syntax errors
+    - ignores beginning '&' sign
+    - makes sure '&' sign is only at the end and marks the instruction as a background process instruction
+    x- DOES NOT actually implement the background process
+  - PART10: Exit
+    - Exit does not actually wait for background processes
+  - PART10: Alias
+    - Does not work for multiple parameter alias cmd Ex. (alias = "ls -l")
+    
