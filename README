@@ -14,7 +14,7 @@ James Keifer Hudson, Artir Hyseni, and Gustavo Valery
   
 - Known Bugs/Incomplete functions:
   - PART8: Pipes
-    - Everything implemented except double pipe. Can find out commented out attempt at double pipe on line (xxx)
+    - Everything implemented except double pipe. Can find out commented out attempt at double pipe on line (1143)
   - PART9: Background Process
     - Checks to see any syntax errors
     - ignores beginning '&' sign
@@ -24,4 +24,5 @@ James Keifer Hudson, Artir Hyseni, and Gustavo Valery
     - Exit does not actually wait for background processes
   - PART10: Alias
     - Does not work for multiple parameter alias cmd Ex. (alias = "ls -l")
+    - Attempt beginning at line (160)
     
