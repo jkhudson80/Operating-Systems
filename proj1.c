@@ -23,6 +23,7 @@ typedef struct
 {
 	char* command;
 	char* alias;
+	int commandwords;
 } com_alias;
 
 
@@ -38,6 +39,7 @@ int main() {
 	char* temp = NULL;
 	int county = 0;
 	int county2 = 0;
+	int numofExecCommands = 0;
 
 	instruction instr;
 	instr.tokens = NULL;
@@ -50,6 +52,7 @@ int main() {
 	{
 			aliaslist[i].command = NULL;
 			aliaslist[i].alias = NULL;
+			aliaslist[i].commandwords = 0;
 	}
 
 	while (1)
@@ -101,6 +104,7 @@ int main() {
 
 		} while ('\n' != getchar());    //until end of line is reached
 //--------------------------------- end of parserhelp.c stuff ------------------------------------------------------------------------
+
 		//Some variables that will help later
 		int j, k;
 		int pipeLocation, pipeLocation2 = 0;																											//for for loops
@@ -110,6 +114,7 @@ int main() {
 		char *tempy3 = NULL;
 		int outred, inred, pipey = 0;																				//truth values for if there is output redirection, input redirection, and piping for a given command
 		int pipeError = 0;
+
 
 		//SECTION: Identifying where all the commands are
 		int comspots[instr.numTokens];																														//initializing to this size because there can't be more commands then there are tokens
@@ -129,6 +134,84 @@ int main() {
 			}
 		}
 		//Done identifying where all the commands are
+
+
+		//converting any alias to there commands
+		//the hard part about this is if you're turning a one word thing like "my_ls" to something like "ls -l"
+		//because then there are more tokens and you'd have to increment instr.numTokens and shift everything so that
+		//parmlist doesn't get affected and you can still iterate through the tokens correctly.
+		//1 word to 1 word alias conversions should be easy though.
+		for(i = 0; i < numofcom; i++)
+		{
+			if(strcmp(instr.tokens[comspots[i]], "alias") == 0 || strcmp(instr.tokens[comspots[i]], "unalias") == 0)
+				break;
+			for(j = 0; j < numalias; j++)
+			{
+				if(strcmp(instr.tokens[comspots[i]], aliaslist[j].alias) == 0)
+				{
+					county2 = comspots[i];
+					//if the alias to command conversion is 1 word to 1 word
+					if(aliaslist[j].commandwords == 1)
+					{
+						instr.tokens[comspots[i]] = (char *) malloc(strlen(aliaslist[j].command) + 1);
+						strcpy(instr.tokens[comspots[i]], aliaslist[j].command);
+					}
+
+					//if the command that the alias refers to is more than one word
+/*					else
+					{
+						char ** tempychar;
+						tempychar = (char **) malloc(aliaslist[j].commandwords + 1);
+						int index = 0;
+
+						county = 0;
+						for(k = index; k < strlen(aliaslist[j].command); k++)
+						{
+							if(aliaslist[j].command[k] != ' ') {
+								county++;
+							}
+							else {
+								tempy1 = (char *) malloc(county);
+								memcpy(tempy1, &aliaslist[j].command[index], county);
+								printf("TEST: tempy1 is |%s|\n", tempy1);
+								index = index + county;
+								county = 0;
+								continue;
+							}
+						}
+
+
+						//separating aliaslist[j].command into individual strings
+						county = 0;
+						tempy1 = NULL;
+						for(k = 0; k < strlen(aliaslist[j].command); k++)
+						{
+							if(aliaslist[j].command[k] == ' ')
+							{
+								tempy1 = (char *) malloc(county + 1);
+								break;
+							}
+							else
+								county++;
+						}
+						printf("county is %d\n", county);
+						for(k = 0; k < county; k++)
+						{
+							tempy1[k] = aliaslist[j].command[k];
+						}
+						printf("temyp1 190 is |%s|\n", tempy1);
+
+						instr.tokens[county2] = (char *) malloc(strlen(tempy1));
+						strcpy(instr.tokens[county2], tempy1);
+						printf("thingy is %s\n", instr.tokens[county2]);
+
+						free(tempy1);
+						tempy1 = NULL;
+					}*/
+				}
+			}
+		}
+
 
 
 		//SECTION: Converting environmental variables
@@ -218,13 +301,12 @@ int main() {
 			} else {
 				if(instr.tokens[1][0] != '/') {
 					tempy1 = (char *) malloc(strlen(getenv("PWD")) + strlen(instr.tokens[1]) + 2);
-					strcpy(tempy1, getenv("PWD"));	
+					strcpy(tempy1, getenv("PWD"));
 					strcat(tempy1, "/");
 					strcat(tempy1, instr.tokens[1]);
 
 					instr.tokens[1] = (char *) malloc(strlen(getenv("PWD")) + strlen(instr.tokens[1]) + 2);
 					strcpy(instr.tokens[1], tempy1);
-					printf("New File: %s\n", instr.tokens[1]);
 				}
 
 
@@ -300,7 +382,7 @@ int main() {
 			}
 		}
 		//Done identifying where all the files are
-
+		numofExecCommands++;
 		//Going through and converting file paths that are just "." to  $pwd
 		for(i = 0; i < numfiles; i++)
 		{
@@ -590,13 +672,23 @@ int main() {
 					if (j != county + i)
 						strcat(tempy1, " ");
 				}
-				//tempy1 is now storing the "command" part of the alias
+				//tempy1 is now storing the "alias" part of the alias
 				//"=" sign is at i + county  + 1
 				county2 = 0;
 				for(j = county + i + 2; j < instr.numTokens; j++)
 				{
-					if(strcmp(instr.tokens[j], "<") == 0 || strcmp(instr.tokens[j], ">") == 0 || strcmp(instr.tokens[j], "|") == 0)
+					//removing the ' from the first token after the = sign
+					if(j == county + i + 2)
+					{
+						memcpy(instr.tokens[j], &instr.tokens[j][1], strlen(instr.tokens[j]));
+					}
+					//checking for the last ' at the end of tokens
+					if(instr.tokens[j][strlen(instr.tokens[j]) - 1] == '\'')
+					{
+						instr.tokens[j][strlen(instr.tokens[j]) - 1] = '\0';
+						county2 = county2 + 1;
 						break;
+					}
 					county2 = county2 + 1;
 				}
 				for(j = 0; j < county2; j++)
@@ -606,6 +698,8 @@ int main() {
 						county3++;
 				}
 				tempy2 = (char *) malloc(county3);
+
+
 				for(j = 0; j < county2; j++)
 				{
 					if(j == 0)
@@ -615,26 +709,31 @@ int main() {
 					if (j != county2 - 1)
 						strcat(tempy2, " ");
 				}
-				//tempy2 is now holding the right side of the "=" sign for an alias
+				//tempy2 is now holding the right side of the "=" sign which is the command
 
-				//checking if the command already has an alias
+				//checking if the command or the alias is already used
 				county = -1;																														//-1 to say there wasn't a match thus far
 				for(j = 0; j < numalias; j++)
 				{
-					if(strcmp(tempy1, aliaslist[j].command) == 0)
+					if(strcmp(tempy2, aliaslist[j].command) == 0 || strcmp(tempy1, aliaslist[i].alias) == 0)
+					{
 						county = j;
+						break;
+					}
 				}
 				if(county != -1)
 				{
-					strcpy(aliaslist[county].command, tempy1);
-					strcpy(aliaslist[county].alias, tempy2);
+					strcpy(aliaslist[county].command, tempy2);
+					strcpy(aliaslist[county].alias, tempy1);
+					aliaslist[county].commandwords = county2;
 				}
 				else if (numalias < 10)																							//max 10 allias
 				{
-					aliaslist[numalias].command = (char *) malloc(strlen(tempy1) + 1);
-					strcpy(aliaslist[numalias].command, tempy1);
-					aliaslist[numalias].alias = (char *) malloc(strlen(tempy2) + 1);
-					strcpy(aliaslist[numalias].alias, tempy2);
+					aliaslist[numalias].command = (char *) malloc(strlen(tempy2) + 1);
+					strcpy(aliaslist[numalias].command, tempy2);
+					aliaslist[numalias].alias = (char *) malloc(strlen(tempy1) + 1);
+					strcpy(aliaslist[numalias].alias, tempy1);
+					aliaslist[numalias].commandwords = county2;
 					numalias++;
 				}
 				else
@@ -648,20 +747,56 @@ int main() {
 
 
 		//unalias
-	/*	for(i = 0; i < numofcom; i++)
+		for(i = 0; i < numofcom; i++)
 		{
-			if(strcmp)
+			if(strcmp(instr.tokens[comspots[i]], "unalias") == 0)
+			{
+				county = 0;
+				tempy1 = NULL;
+				//grabbing what the alias you're trying to remove is
+				for(j = i + 1; j < instr.numTokens; j++)
+				{
+					county = county + strlen(instr.tokens[j]);
+					//condition to make room for a space as long as it isn't the last token
+					if(j != instr.numTokens - 1)
+						county = county + 1;
+				}
+				tempy1 = (char *) malloc(county + 1);
+				for(j = i + 1; j < instr.numTokens; j++)
+				{
+					if(j == i + 1)
+						strcpy(tempy1, instr.tokens[j]);
+					else
+						strcat(tempy1, instr.tokens[j]);
+					if(j != instr.numTokens - 1)
+						strcat(tempy1, " ");
+				}
+				//tempy1 is now storing the alias that you're trying to remove
 
+				//if there are no alias at all then the alias you're trying to remove obviously doesn't exist
+				if(numalias == 0)
+					printf("Error: Invalid alias trying to be removed\n");
+				//going through aliaslist to see if the alias that you're trying to delete exists
+				for(j = 0; j < numalias; j++)
+				{
+					if(strcmp(aliaslist[j].alias, tempy1) == 0)
+					{
+						numalias--;
+						break;
+					}
+					//if you went through whole aliaslist and didn't find the alias
+					if(j == numalias - 1)
+						printf("Error: Invalid alias trying to be removed\n");
+				}
+			}
+		}//end of unalias
+
+		if(!strcmp(instr.tokens[0], "exit") && instr.numTokens == 1)
+		{
+				printf("Exiting...\n");
+				printf("Commands Executed: %d\n", numofExecCommands);
+				exit(0);
 		}
-*/
-
-		//converting any alias to there commands
-		//the hard part about this is if you're turning a one word thing like "my_ls" to something like "ls -l"
-		//because then there are more tokens and you'd have to increment instr.numTokens and shift everything so that
-		//parmlist doesn't get affected and you can still iterate through the tokens correctly.
-		//x word to x word alias conversions should be easy though.
-
-
 
 		//SECTION: Built in commands (part 6 stuff)
 		//checking to make sure the arguement isn't any of the built in commands that we have to build ourselves for part 10
@@ -766,8 +901,10 @@ int main() {
 			{
 				int status;																																									//this is for the waitpid function. status is 0 if there is no error.
 				pid_t pid = fork();
-				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+				if (pid == -1) {																																	//this code was making the prompt print out twice for some reason so i just commented it out for now
 								printf("Forking Error");
+								numofExecCommands--;
+				}
 				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
 				{
 					//Part 10 echo
@@ -778,10 +915,10 @@ int main() {
 						exit(1);
 					}
 					else if(cdFlag == 1 && singleCD == 0) {
-						printf("path: %s\n", instr.tokens[1]);
 						int chDirTest = chdir(instr.tokens[1]);
 						if(chDirTest == -1) {
 							printf("chdir failed\n");
+							numofExecCommands--;
 							exit(1);
 						} else if (chDirTest == 0) {
 							setenv("PWD", instr.tokens[1], 1);
@@ -791,6 +928,7 @@ int main() {
 						int chDirTest = chdir(getenv("HOME"));
 						if(chDirTest == -1) {
 							printf("chdir failed\n");
+							numofExecCommands--;
 							exit(1);
 						} else if (chDirTest == 0) {
 							setenv("PWD", getenv("HOME"), 1);
@@ -799,7 +937,8 @@ int main() {
 					else
 					{
 						execv(temp, parmlist);																																		//this is what executes all the prebuilt commands. temp is the command name (at the end of the path) and parmlist is all the parameters for that command
-						printf("execv failed\n");																															//if an invalid command was inputted then execv returns and hits this line to display an error code
+						printf("execv failed\n");
+						numofExecCommands--;																														//if an invalid command was inputted then execv returns and hits this line to display an error code
 						exit(1);
 						}
 				}
@@ -822,8 +961,10 @@ int main() {
 							break;
 						}
 				}
-				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+				if (pid == -1) {																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
 			          printf("Forking Error");
+								numofExecCommands--;
+				}
 			  else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
 			  {
 			    open(tempy1, O_RDWR | O_CREAT | O_TRUNC);
@@ -832,6 +973,7 @@ int main() {
 			    close(3);
 			    execv(temp, parmlist);
 			    printf("exec failed\n");
+					numofExecCommands--;
 			  }
 			  else
 			  	waitpid(pid, &status, 0);
@@ -839,7 +981,6 @@ int main() {
 				free(tempy1);
 				tempy1 = NULL;
 			}
-
 			//Just Input Redirection
 			else if(outred == 0 && inred == 1 && pipey == 0 && pipeError == 0 && cdFlag == 0)
 			{
@@ -858,8 +999,10 @@ int main() {
 				//tempy1 is the input file now
 
 
-				if (pid == -1)																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
+				if (pid == -1) {																																		//this code was making the prompt print out twice for some reason so i just commented it out for now
 					printf("Forking Error");
+					numofExecCommands--;
+				}
 				else if(pid == 0) 																																					//pid of 0 means the child process was successfully created
 				{
 					open(tempy1, O_RDONLY);
@@ -868,6 +1011,7 @@ int main() {
 					close(3);
 					execv(temp, parmlist);
 					printf("exec failed\n");
+					numofExecCommands--;
 				}
 				else
 					waitpid(pid, &status, 0);
@@ -917,8 +1061,10 @@ int main() {
 				int status;
 				pid_t pid = fork();
 				//setting input and output redirections using the same process that was used for them each individually
-				if (pid == -1)
+				if (pid == -1) {
 					printf("Forking Error");
+					numofExecCommands--;
+				}
 				else if(pid == 0)
 				{
 					//setting input
@@ -934,6 +1080,7 @@ int main() {
 					//executing
 					execv(temp, parmlist);
 					printf("exec failed\n");
+					numofExecCommands--;
 				}
 				else
 					waitpid(pid, &status, 0);
@@ -943,7 +1090,8 @@ int main() {
 				free(tempy2);
 				tempy2 = NULL;
 			}//done with both input and output redirection
-			// Piping
+
+			// Single Pipe
 			else if(outred == 0 && inred == 0 && pipey == 1 && pipeError == 0 && cdFlag == 0)
 			{
 				// 0 is read end, 1 is write end
@@ -951,23 +1099,30 @@ int main() {
 			    int fd[2];
 
 			    pid_t pid1 = fork();
-			    if(pid1 == -1)
+			    if(pid1 == -1) {
 			    	printf("Forking Error");
+						numofExecCommands--;
+					}
 			    else if(pid1 == 0) {
 			    	int piper = pipe(fd);
-			    	if( piper == -1)
+			    	if( piper == -1) {
 			    		printf("Piping Error\n");
+							numofExecCommands--;
+						}
 			    	else if(piper == 0) {
 			    		pid_t pid2 = fork();
-			    		if(pid2 == -1)
+			    		if(pid2 == -1) {
 			    			printf("Forking Error");
+								numofExecCommands--;
+							}
 			    		else if(pid2 == 0) {
 								close(1);
 			    			dup(fd[1]);
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist[0], parmlist);
-			    			printf("execv failed\n");		
+								printf("exec failed\n");
+								numofExecCommands--;
 			    		}
 			    		else {
 			    			close(0);
@@ -975,7 +1130,8 @@ int main() {
 			    			close(fd[0]);
 			    			close(fd[1]);
 			    			execv(parmlist2[0], parmlist2);
-			    			printf("execv failed\n");		
+								printf("exec failed\n");
+								numofExecCommands--;
 			    		}
 			    	}
 			    }
@@ -983,6 +1139,78 @@ int main() {
 			    	waitpid(pid1, &status, 0);
 			    }
 			}
+/*
+	//DOUBLE PIPES-------------------------
+			else if(outred == 0 && inred == 0 && pipey == 2 && pipeError == 0)
+			{
+				int status1, status2;
+				pid_t pid1, pid2, pid3;
+				int fd1[2], fd2[2];
+				int piper1, piper2;
+
+				pid1 = fork();
+				if(pid1 == -1)
+					printf("Forking Error\n");
+				else if (pid1 == 0)
+				{
+					piper1 = pipe(fd1);
+					if(piper1 == -1)
+						printf("Piping Error\n");
+					else if(piper1 == 0)
+					{
+						pid2 = fork();
+						if(pid2 == -1)
+							printf("Forking Error\n");
+						else if(pid2 == 0)
+						{
+							piper2 = pipe(fd2);
+							if(piper2 == -1)
+								printf("Piping Error\n");
+							else if(piper2 == 0)
+							{
+								pid3 = fork();
+								if(pid3 == -1)
+									printf("Forking Error\n");
+								else if(pid3 == 0)
+								{
+									//command 3
+									printf("command 3\n");
+									close(0);
+									dup(fd2[0]);
+									close(fd2[0]);
+									close(fd2[1]);
+									execv(parmlist2[0], parmlist2);
+									printf("exec failed\n");
+								}
+								else
+								{
+									//command 2
+									//changing where cmd2 is getting input
+									printf("command 2\n");
+									close(0);
+				    			dup(fd1[0]);
+				    			close(fd1[0]);
+				    			close(fd1[1]);
+									//changing where cmd2 is outputting to
+									close(1);
+									dup(fd2[1]);
+									close(fd2[0]);
+									close(fd2[1]);
+				    			execv(parmlist2[0], parmlist2);
+									printf("exec failed\n");
+								}
+							}
+						}
+						else
+						{
+							waitpid(pid2, &status2, 0);
+						}
+					}
+				}
+				else
+					waitpid(pid1, &status1, 0);
+			}//end of double pipe
+*/
 			free(temp);
 			temp = NULL;
 			free(tempy1);
